@@ -1,4 +1,13 @@
-/************** FUNZIONI DI SUPPORTO **************/
+/**
+ * PRICING.gs
+ * ---------------------------------------------------------------------------
+ * Logica di calcolo del prezzo di iscrizione. Nessuna modifica di
+ * comportamento rispetto all'originale "Calcolatore prezzi.js": gli indici
+ * di riga/colonna del foglio tariffe e i nomi delle colonne del foglio
+ * iscrizioni sono stati sostituiti con riferimenti a CONFIG, mantenendo
+ * identici tutti i calcoli, i confronti e i bug noti (vedi commenti ⚠️).
+ * ---------------------------------------------------------------------------
+ */
 
 function readConfigMap(sheet){
   var vals = sheet.getDataRange().getValues();
@@ -41,11 +50,11 @@ function trovaDateCUN(sheet) {
     for (var j = 0; j < range[i].length; j++) {
       var cella = (range[i][j] + "").toLowerCase().trim();
 
-      if (cella === "data inizio cun") {
+      if (cella === CONFIG.TARIFFE_LABELS.DATA_INIZIO_CUN) {
         dataInizio = new Date(range[i][j + 1]);
       }
 
-      if (cella === "data fine cun") {
+      if (cella === CONFIG.TARIFFE_LABELS.DATA_FINE_CUN) {
         dataFine = new Date(range[i][j + 1]);
       }
     }
@@ -64,8 +73,8 @@ function AutoCalcolatorePrezzi_tuamadre() {
   
   // Apri il foglio di calcolo associato al modulo Google.
   var foglioCalcolo = SpreadsheetApp.getActiveSpreadsheet();
-  var foglio = foglioCalcolo.getSheets()[0]; // Modifica l'indice se necessario.
-  var foglio2 = foglioCalcolo.getSheets()[1];
+  var foglio = foglioCalcolo.getSheets()[CONFIG.SHEETS.INDEX_ISCRIZIONI]; // Modifica l'indice se necessario.
+  var foglio2 = foglioCalcolo.getSheets()[CONFIG.SHEETS.INDEX_TARIFFE];
 
   // Ottieni i dati dal foglio di calcolo.
   var dati = foglio.getDataRange().getValues();
@@ -73,32 +82,32 @@ function AutoCalcolatorePrezzi_tuamadre() {
   // Leggi la tabella di configurazione dal secondo foglio
   var cfg = readConfigMap(foglio2);
 
-  var eta_giovane = tariffe [1][4]
+  var eta_giovane = tariffe [CONFIG.TARIFFE_RIGHE.ETA_GIOVANE_RIGA][CONFIG.TARIFFE_RIGHE.ETA_GIOVANE_COLONNA]
   
-  var tariffa_giorno_completo = tariffe[1][1]; // questa va definita nel momento in cui si sapranno i prezzi
-  var tariffa_notte = tariffe[2][1]; // questa va definita nel momento in cui si sapranno i prezzi
-  var tariffa_colazione = tariffe[3][1]; // questa va definita nel momento in cui si sapranno i prezzi
-  var tariffa_pasto_principale = tariffe[4][1]; // questa va definita nel momento in cui si sapranno i prezzi
-  var solo_pranzo_CUN = tariffe[5][1]; // questa va definita nel momento in cui si sapranno i prezzi
+  var tariffa_giorno_completo = tariffe[CONFIG.TARIFFE_RIGHE.GIORNO_COMPLETO][CONFIG.TARIFFE_COLONNA_VALORE]; // questa va definita nel momento in cui si sapranno i prezzi
+  var tariffa_notte = tariffe[CONFIG.TARIFFE_RIGHE.NOTTE][CONFIG.TARIFFE_COLONNA_VALORE]; // questa va definita nel momento in cui si sapranno i prezzi
+  var tariffa_colazione = tariffe[CONFIG.TARIFFE_RIGHE.COLAZIONE][CONFIG.TARIFFE_COLONNA_VALORE]; // questa va definita nel momento in cui si sapranno i prezzi
+  var tariffa_pasto_principale = tariffe[CONFIG.TARIFFE_RIGHE.PASTO_PRINCIPALE][CONFIG.TARIFFE_COLONNA_VALORE]; // questa va definita nel momento in cui si sapranno i prezzi
+  var solo_pranzo_CUN = tariffe[CONFIG.TARIFFE_RIGHE.SOLO_PRANZO_CUN][CONFIG.TARIFFE_COLONNA_VALORE]; // questa va definita nel momento in cui si sapranno i prezzi
 
-  var tariffa_giorno_completo_uninord = tariffe[8][1]; // questa va definita nel momento in cui si sapranno i prezzi
-  var tariffa_notte_uninord = tariffe[9][1]; // questa va definita nel momento in cui si sapranno i prezzi
-  var tariffa_colazione_uninord = tariffe[10][1]; // questa va definita nel momento in cui si sapranno i prezzi
-  var tariffa_pasto_principale_uninord = tariffe[11][1]; // questa va definita nel momento in cui si sapranno i prezzi
-  var solo_pranzo_CUN_uninord = tariffe[12][1]; // questa va definita nel momento in cui si sapranno i prezzi
-  var tetto_massimo_uninord = tariffe[13][1]; // questa va definita nel momento in cui si sapranno i prezzi
+  var tariffa_giorno_completo_uninord = tariffe[CONFIG.TARIFFE_RIGHE.GIORNO_COMPLETO_UNINORD][CONFIG.TARIFFE_COLONNA_VALORE]; // questa va definita nel momento in cui si sapranno i prezzi
+  var tariffa_notte_uninord = tariffe[CONFIG.TARIFFE_RIGHE.NOTTE_UNINORD][CONFIG.TARIFFE_COLONNA_VALORE]; // questa va definita nel momento in cui si sapranno i prezzi
+  var tariffa_colazione_uninord = tariffe[CONFIG.TARIFFE_RIGHE.COLAZIONE_UNINORD][CONFIG.TARIFFE_COLONNA_VALORE]; // questa va definita nel momento in cui si sapranno i prezzi
+  var tariffa_pasto_principale_uninord = tariffe[CONFIG.TARIFFE_RIGHE.PASTO_PRINCIPALE_UNINORD][CONFIG.TARIFFE_COLONNA_VALORE]; // questa va definita nel momento in cui si sapranno i prezzi
+  var solo_pranzo_CUN_uninord = tariffe[CONFIG.TARIFFE_RIGHE.SOLO_PRANZO_CUN_UNINORD][CONFIG.TARIFFE_COLONNA_VALORE]; // questa va definita nel momento in cui si sapranno i prezzi
+  var tetto_massimo_uninord = tariffe[CONFIG.TARIFFE_RIGHE.TETTO_MASSIMO_UNINORD][CONFIG.TARIFFE_COLONNA_VALORE]; // questa va definita nel momento in cui si sapranno i prezzi
 
-  var tariffa_giorno_completo_unisud = tariffe[16][1]; // questa va definita nel momento in cui si sapranno i prezzi
-  var tariffa_notte_unisud = tariffe[17][1]; // questa va definita nel momento in cui si sapranno i prezzi
-  var tariffa_colazione_unisud = tariffe[18][1]; // questa va definita nel momento in cui si sapranno i prezzi
-  var tariffa_pasto_principale_unisud = tariffe[19][1]; // questa va definita nel momento in cui si sapranno i prezzi
-  var solo_pranzo_CUN_unisud = tariffe[20][1]; // questa va definita nel momento in cui si sapranno i prezzi
-  var tetto_massimo_unisud = tariffe[21][1]; // questa va definita nel momento in cui si sapranno i prezzi
+  var tariffa_giorno_completo_unisud = tariffe[CONFIG.TARIFFE_RIGHE.GIORNO_COMPLETO_UNISUD][CONFIG.TARIFFE_COLONNA_VALORE]; // questa va definita nel momento in cui si sapranno i prezzi
+  var tariffa_notte_unisud = tariffe[CONFIG.TARIFFE_RIGHE.NOTTE_UNISUD][CONFIG.TARIFFE_COLONNA_VALORE]; // questa va definita nel momento in cui si sapranno i prezzi
+  var tariffa_colazione_unisud = tariffe[CONFIG.TARIFFE_RIGHE.COLAZIONE_UNISUD][CONFIG.TARIFFE_COLONNA_VALORE]; // questa va definita nel momento in cui si sapranno i prezzi
+  var tariffa_pasto_principale_unisud = tariffe[CONFIG.TARIFFE_RIGHE.PASTO_PRINCIPALE_UNISUD][CONFIG.TARIFFE_COLONNA_VALORE]; // questa va definita nel momento in cui si sapranno i prezzi
+  var solo_pranzo_CUN_unisud = tariffe[CONFIG.TARIFFE_RIGHE.SOLO_PRANZO_CUN_UNISUD][CONFIG.TARIFFE_COLONNA_VALORE]; // questa va definita nel momento in cui si sapranno i prezzi
+  var tetto_massimo_unisud = tariffe[CONFIG.TARIFFE_RIGHE.TETTO_MASSIMO_UNISUD][CONFIG.TARIFFE_COLONNA_VALORE]; // questa va definita nel momento in cui si sapranno i prezzi
   
-  var sconti_05 = tariffe[24][1];
-  var sconti_68 = tariffe[25][1];
-  var sconti_911 = tariffe[26][1];
-  var sconti_1214 = tariffe[27][1];
+  var sconti_05 = tariffe[CONFIG.TARIFFE_RIGHE.SCONTO_ETA_0_5][CONFIG.TARIFFE_COLONNA_VALORE];
+  var sconti_68 = tariffe[CONFIG.TARIFFE_RIGHE.SCONTO_ETA_6_8][CONFIG.TARIFFE_COLONNA_VALORE];
+  var sconti_911 = tariffe[CONFIG.TARIFFE_RIGHE.SCONTO_ETA_9_11][CONFIG.TARIFFE_COLONNA_VALORE];
+  var sconti_1214 = tariffe[CONFIG.TARIFFE_RIGHE.SCONTO_ETA_12_14][CONFIG.TARIFFE_COLONNA_VALORE];
 
   var dateCUN = trovaDateCUN(foglio2);
   var data_inizio_cun = dateCUN.dataInizio;
@@ -134,13 +143,13 @@ console.log('DATA CUN lette da config:', data_inizio_cun, limiteDataFine);
   }
 
   var headerMap = buildHeaderIndex(foglio);
-  var idxDataNascita = getCol(['data di nascita'], headerMap);
-  var idxDataArrivo = getCol(['data di arrivo'], headerMap);
-  var idxPastoArrivo = getCol(['pasto di arrivo'], headerMap);
-  var idxDataPartenza = getCol(['data di partenza'], headerMap);
-  var idxPastoPartenza = getCol(['pasto di partenza'], headerMap);
-  var idxSoloPranzoCun = getCol(['partecipi solo al pranzo del cun?'], headerMap);
-  var idxPrezzo = getCol(['prezzo','prezzo finale'],headerMap);
+  var idxDataNascita = getCol(CONFIG.COLONNE.DATA_NASCITA, headerMap);
+  var idxDataArrivo = getCol(CONFIG.COLONNE.DATA_ARRIVO, headerMap);
+  var idxPastoArrivo = getCol(CONFIG.COLONNE.PASTO_ARRIVO, headerMap);
+  var idxDataPartenza = getCol(CONFIG.COLONNE.DATA_PARTENZA, headerMap);
+  var idxPastoPartenza = getCol(CONFIG.COLONNE.PASTO_PARTENZA, headerMap);
+  var idxSoloPranzoCun = getCol(CONFIG.COLONNE.SOLO_PRANZO_CUN, headerMap);
+  var idxPrezzo = getCol(CONFIG.COLONNE.PREZZO, headerMap);
 
 
   console.log('tumadre')
@@ -171,17 +180,17 @@ console.log('DATA CUN lette da config:', data_inizio_cun, limiteDataFine);
     var numero_notti = Math.round((dataFineSenzaOra - dataInizioSenzaOra) / (1000 * 60 * 60 * 24));
     var eta = Math.round((oggiSenzaOra - dataNascitaSenzaOra) / (1000 * 60 * 60 * 24 * 365.25));
 
-    if (dati[riga][idxSoloPranzoCun] !== 'Si') {
+    if (dati[riga][idxSoloPranzoCun] !== CONFIG.STATI.SOLO_PRANZO_SI_ESATTO) {
 
       var pasto_inizio;
       var pastoArrivo = dati[riga][idxPastoArrivo];
-      if (pastoArrivo === 'Colazione') {
+      if (pastoArrivo === CONFIG.PASTI.ARRIVO_COLAZIONE) {
         pasto_inizio = 3;
-      } else if (pastoArrivo === 'Pranzo') {
+      } else if (pastoArrivo === CONFIG.PASTI.ARRIVO_PRANZO) {
         pasto_inizio = 2;
-      } else if (pastoArrivo === 'Cena') {
+      } else if (pastoArrivo === CONFIG.PASTI.ARRIVO_CENA) {
         pasto_inizio = 1;
-      } else if (pastoArrivo === 'Dopo cena') {
+      } else if (pastoArrivo === CONFIG.PASTI.ARRIVO_DOPO_CENA) {
         pasto_inizio = 0;
       }
 
@@ -189,13 +198,13 @@ console.log('DATA CUN lette da config:', data_inizio_cun, limiteDataFine);
       var pastoPartenza = dati[riga][idxPastoPartenza];
       if (pippo) {
         pasto_partenza = 1;
-      } else if (pastoPartenza === 'Colazione') {
+      } else if (pastoPartenza === CONFIG.PASTI.PARTENZA_COLAZIONE) {
         pasto_partenza = 2;
-      } else if (pastoPartenza === 'Pranzo') {
+      } else if (pastoPartenza === CONFIG.PASTI.PARTENZA_PRANZO) {
         pasto_partenza = 1;
-      } else if (pastoPartenza === 'Cena') {
+      } else if (pastoPartenza === CONFIG.PASTI.PARTENZA_CENA) {
         pasto_partenza = 0;
-      } else if (pastoPartenza === 'Prima di colazione') {
+      } else if (pastoPartenza === CONFIG.PASTI.PARTENZA_PRIMA_COLAZIONE) {
         pasto_partenza = 3;
       }
     
