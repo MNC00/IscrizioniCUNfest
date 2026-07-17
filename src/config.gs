@@ -11,15 +11,23 @@
  * referenziati con `CONFIG.<SEZIONE>.<CHIAVE>` al posto delle stringhe/numeri
  * scritti a mano nei singoli file.
  *
- * Nessun ID di file/cartella Google Drive è stato trovato nel codice sorgente:
- * tutti gli script operano su SpreadsheetApp.getActiveSpreadsheet(), quindi
- * non è necessario centralizzare alcun ID di spreadsheet/form/cartella.
+ * Nessun ID di file/cartella Google Drive è stato trovato nel codice sorgente
+ * originale: tutti gli script operano su SpreadsheetApp.getActiveSpreadsheet()
+ * (progetto Apps Script "bound" allo spreadsheet). Per questo CONFIG.SPREADSHEET_ID
+ * è lasciato vuoto di default: se un domani il progetto dovesse diventare
+ * "standalone" (non più bound), basterà valorizzarlo qui, in un unico punto.
  * Non sono stati trovati indirizzi email scritti a mano: tutte le email sono
  * lette dinamicamente dalle righe dei fogli.
  * ---------------------------------------------------------------------------
  */
 
 var CONFIG = {
+
+  /* ===================== SPREADSHEET ===================== */
+  // ID esplicito del Google Sheet. Lasciare "" per usare lo spreadsheet a cui
+  // lo script è collegato (SpreadsheetApp.getActiveSpreadsheet()), come fa
+  // oggi tutto il codice del progetto.
+  SPREADSHEET_ID: "",
 
   /* ===================== NOMI DEI FOGLI (TAB) ===================== */
   SHEETS: {
@@ -28,6 +36,7 @@ var CONFIG = {
     PAGAMENTO: "Pagamento",                  // Rigenerato/aggiornato da creaFoglioPagamento()
     TABELLA_PASTI: "Tabella Pasti",          // Rigenerato da generaTabellaPasti()
     STANZE: "Stanze",                        // Non presente nell'export analizzato in Fase 1, da verificare
+    LOG: "Log",                              // Tab di log tecnico, creato/usato da logEvent() in logger.gs
 
     // Fogli acceduti per POSIZIONE (indice 0-based, getSheets()[n]) nel codice
     // originale invece che per nome. Mantenuti qui come riferimento esplicito:
@@ -35,6 +44,18 @@ var CONFIG = {
     INDEX_ISCRIZIONI: 0,      // Calcolatore prezzi.js, Generale mail.js, RecoveryEmail.js
     INDEX_TARIFFE: 1,         // "Tabella Costi e Istruzioni Fog" - Calcolatore prezzi.js, Tabella pasti.js
     INDEX_COMUNICAZIONE: 2    // "Comunicazione a tutti gli iscritti" - RecoveryEmail.js
+  },
+
+  /* ===================== LOG ===================== */
+  LOG: {
+    INTESTAZIONI: ["Data e Ora", "Livello", "Funzione", "Messaggio", "Dettaglio Errore"],
+    LIVELLI: {
+      INFO: "INFO",
+      WARNING: "WARNING",
+      ERROR: "ERROR"
+    },
+    FORMATO_DATA_ORA: "dd/MM/yyyy HH:mm:ss",
+    COLORE_INTESTAZIONE: "#d9ead3"
   },
 
   /* ===================== CELLE FISSE (riferimenti diretti) ===================== */
