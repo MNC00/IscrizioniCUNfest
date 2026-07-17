@@ -149,8 +149,20 @@ function buildEmailContentAggiornamento(opts) {
 
 /************** FUNZIONE 1: invio da MODULO **************/
 function invioMailIscrizione() {
-var ss = SpreadsheetApp.getActiveSpreadsheet();
-var sh = ss.getSheets()[CONFIG.SHEETS.INDEX_ISCRIZIONI];
+var FN = "invioMailIscrizione";
+var ss, sh;
+try {
+  ss = SpreadsheetApp.getActiveSpreadsheet();
+  sh = ss.getSheets()[CONFIG.SHEETS.INDEX_ISCRIZIONI];
+} catch (e) {
+  logEvent(CONFIG.LOG.LIVELLI.ERROR, FN, "Impossibile accedere al foglio iscrizioni.", e);
+  return;
+}
+if (!sh) {
+  logEvent(CONFIG.LOG.LIVELLI.ERROR, FN, "Foglio iscrizioni non trovato (CONFIG.SHEETS.INDEX_ISCRIZIONI).");
+  return;
+}
+
 var headerMap = buildHeaderIndex(sh);
 
 var cNome = getCol(CONFIG.COLONNE.NOME, headerMap);
@@ -166,13 +178,25 @@ var idxNuovoInvio = ensureColumn(sh, headerMap, CONFIG.COLONNE.NUOVO_INVIO);
 
 
 var rowIdx = sh.getLastRow();
-if (rowIdx <= 1) return;
+if (rowIdx <= 1) {
+  logEvent(CONFIG.LOG.LIVELLI.INFO, FN, "Nessuna riga di iscrizione da processare (solo intestazione).");
+  return;
+}
 
 
 var row = sh.getRange(rowIdx, 1, 1, sh.getLastColumn()).getValues()[0];
 var nome = row[cNome];
 var email = row[cEmail];
-if (!nome || !email) return;
+
+// Controllo preventivo: dati essenziali presenti e indirizzo email plausibile
+if (!nome || !email) {
+  logEvent(CONFIG.LOG.LIVELLI.WARNING, FN, "Riga " + rowIdx + ": nome o email mancanti, mail di conferma NON inviata.");
+  return;
+}
+if (!isValidEmail_(email)) {
+  logEvent(CONFIG.LOG.LIVELLI.WARNING, FN, "Riga " + rowIdx + ": indirizzo email non valido (\"" + email + "\"), mail di conferma NON inviata.");
+  return;
+}
 
 
 var prezzo = row[cPrezzo];
@@ -190,15 +214,44 @@ var anno = getAnnoAttuale();
 var payload = buildEmailContentIniziale({ nome, anno, hasPrezzo, isSoloPranzo, dataArrivo, pastoArrivo, dataPartenza, pastoPartenza, prezzo });
 
 
-MailApp.sendEmail({ to: email, subject: payload.oggetto, htmlBody: payload.corpo });
-sh.getRange(rowIdx, idxMailConferma +1).setValue(payload.stato);
-sh.getRange(rowIdx, idxNuovoInvio +1).setValue("");
+try {
+  MailApp.sendEmail({ to: email, subject: payload.oggetto, htmlBody: payload.corpo });
+} catch (e) {
+  logEvent(CONFIG.LOG.LIVELLI.ERROR, FN, "Invio mail di conferma fallito per \"" + email + "\" (riga " + rowIdx + ").", e);
+  return;
+}
+
+try {
+  sh.getRange(rowIdx, idxMailConferma +1).setValue(payload.stato);
+  sh.getRange(rowIdx, idxNuovoInvio +1).setValue("");
+} catch (e) {
+  logEvent(CONFIG.LOG.LIVELLI.ERROR, FN, "Mail inviata a \"" + email + "\" ma aggiornamento colonne di stato fallito (riga " + rowIdx + ").", e);
+}
 }
 
 /************** FUNZIONE 2: invio da MODIFICA **************/
 function invioMailAggiornamento(riga) {
-var ss = SpreadsheetApp.getActiveSpreadsheet();
-var sh = ss.getSheets()[CONFIG.SHEETS.INDEX_ISCRIZIONI];
+var FN = "invioMailAggiornamento";
+var ss, sh;
+try {
+  ss = SpreadsheetApp.getActiveSpreadsheet();
+  sh = ss.getSheets()[CONFIG.SHEETS.INDEX_ISCRIZIONI];
+} catch (e) {
+  logEvent(CONFIG.LOG.LIVELLI.ERROR, FN, "Impossibile accedere al foglio iscrizioni.", e);
+  return;
+}
+if (!sh) {
+  logEvent(CONFIG.LOG.LIVELLI.ERROR, FN, "Foglio iscrizioni non trovato (CONFIG.SHEETS.INDEX_ISCRIZIONI).");
+  return;
+}
+
+// Controllo preventivo: la riga deve essere un indice valido nel foglio
+var rowIdx = riga;
+if (!rowIdx || rowIdx <= 1 || rowIdx > sh.getLastRow()) {
+  logEvent(CONFIG.LOG.LIVELLI.WARNING, FN, "Riga non valida ricevuta (" + riga + "), reinvio annullato.");
+  return;
+}
+
 var headerMap = buildHeaderIndex(sh);
 
 var cNome = getCol(CONFIG.COLONNE.NOME, headerMap);
@@ -212,22 +265,34 @@ var cPastoPartenza = getCol(CONFIG.COLONNE.PASTO_PARTENZA, headerMap);
 var idxMailConferma = ensureColumn(sh, headerMap, CONFIG.COLONNE.MAIL_CONFERMA_INVIATA);
 var idxNuovoInvio = ensureColumn(sh, headerMap, CONFIG.COLONNE.NUOVO_INVIO);
 var idxStatoNuovoInvio = ensureColumn(sh, headerMap, CONFIG.COLONNE.STATO_NUOVO_INVIO);
-var rowIdx = riga;
 
 var statoIniziale = String(sh.getRange(rowIdx, idxMailConferma +1).getValue() || "").toLowerCase();
 // ATTENZIONE: "inviata" (da solo) è uno stato legacy senza corrispondenza in CONFIG.STATI,
 // mantenuto identico all'originale per non alterare il comportamento del controllo anti-doppio-invio.
 if (statoIniziale === CONFIG.STATI.MAIL_INVIATA_CON_PREZZO.toLowerCase() || statoIniziale === "inviata" || statoIniziale === CONFIG.STATI.MAIL_PRIMA_SENZA_ORA_CON.toLowerCase()) {
-sh.getRange(rowIdx, idxStatoNuovoInvio +1).setValue(CONFIG.STATI.BLOCCATO_GIA_INVIATA);
-sh.getRange(rowIdx, idxNuovoInvio +1).setValue("");
-return;
+  try {
+    sh.getRange(rowIdx, idxStatoNuovoInvio +1).setValue(CONFIG.STATI.BLOCCATO_GIA_INVIATA);
+    sh.getRange(rowIdx, idxNuovoInvio +1).setValue("");
+  } catch (e) {
+    logEvent(CONFIG.LOG.LIVELLI.ERROR, FN, "Scrittura stato 'bloccato' fallita (riga " + rowIdx + ").", e);
+  }
+  return;
 }
 
 
 var row = sh.getRange(rowIdx, 1, 1, sh.getLastColumn()).getValues()[0];
 var nome = row[cNome];
 var email = row[cEmail];
-if (!nome || !email) return;
+
+// Controllo preventivo: dati essenziali presenti e indirizzo email plausibile
+if (!nome || !email) {
+  logEvent(CONFIG.LOG.LIVELLI.WARNING, FN, "Riga " + rowIdx + ": nome o email mancanti, mail di aggiornamento NON inviata.");
+  return;
+}
+if (!isValidEmail_(email)) {
+  logEvent(CONFIG.LOG.LIVELLI.WARNING, FN, "Riga " + rowIdx + ": indirizzo email non valido (\"" + email + "\"), mail di aggiornamento NON inviata.");
+  return;
+}
 
 
 var prezzo = row[cPrezzo];
@@ -245,17 +310,37 @@ var anno = getAnnoAttuale();
 var payload = buildEmailContentAggiornamento({ nome, anno, hasPrezzo, isSoloPranzo, dataArrivo, pastoArrivo, dataPartenza, pastoPartenza, prezzo });
 
 
-MailApp.sendEmail({ to: email, subject: payload.oggetto, htmlBody: payload.corpo });
-sh.getRange(rowIdx, idxStatoNuovoInvio +1).setValue(payload.stato);
-sh.getRange(rowIdx, idxNuovoInvio +1).setValue(CONFIG.STATI.GIA_FATTO);
-sh.getRange(rowIdx, idxMailConferma +1).setValue(CONFIG.STATI.MAIL_PRIMA_SENZA_ORA_CON);
+try {
+  MailApp.sendEmail({ to: email, subject: payload.oggetto, htmlBody: payload.corpo });
+} catch (e) {
+  logEvent(CONFIG.LOG.LIVELLI.ERROR, FN, "Invio mail di aggiornamento fallito per \"" + email + "\" (riga " + rowIdx + ").", e);
+  return;
+}
+
+try {
+  sh.getRange(rowIdx, idxStatoNuovoInvio +1).setValue(payload.stato);
+  sh.getRange(rowIdx, idxNuovoInvio +1).setValue(CONFIG.STATI.GIA_FATTO);
+  sh.getRange(rowIdx, idxMailConferma +1).setValue(CONFIG.STATI.MAIL_PRIMA_SENZA_ORA_CON);
+} catch (e) {
+  logEvent(CONFIG.LOG.LIVELLI.ERROR, FN, "Mail inviata a \"" + email + "\" ma aggiornamento colonne di stato fallito (riga " + rowIdx + ").", e);
+}
 }
 
 /************** COMUNICAZIONE DI MASSA **************/
 function sendRecoveryEmails() {
-  // Ottieni il foglio attivo
-  var sh = SpreadsheetApp.getActiveSpreadsheet().getSheets()[CONFIG.SHEETS.INDEX_ISCRIZIONI];
-  var foglioMail = SpreadsheetApp.getActiveSpreadsheet().getSheets()[CONFIG.SHEETS.INDEX_COMUNICAZIONE];
+  var FN = "sendRecoveryEmails";
+  var sh, foglioMail;
+  try {
+    sh = SpreadsheetApp.getActiveSpreadsheet().getSheets()[CONFIG.SHEETS.INDEX_ISCRIZIONI];
+    foglioMail = SpreadsheetApp.getActiveSpreadsheet().getSheets()[CONFIG.SHEETS.INDEX_COMUNICAZIONE];
+  } catch (e) {
+    logEvent(CONFIG.LOG.LIVELLI.ERROR, FN, "Impossibile accedere ai fogli iscrizioni/comunicazione.", e);
+    return;
+  }
+  if (!sh || !foglioMail) {
+    logEvent(CONFIG.LOG.LIVELLI.ERROR, FN, "Foglio iscrizioni o foglio comunicazione non trovato (indici CONFIG.SHEETS.INDEX_*).");
+    return;
+  }
   
   // Ottieni tutti i dati
   var data = sh.getDataRange().getValues();
@@ -278,9 +363,20 @@ function sendRecoveryEmails() {
 //  var cDataPartenza = getCol(['data partenza', 'data di partenza'], headerMap);
 //  var cPastoPartenza = getCol(['pasto di partenza', 'pasto partenza'], headerMap);
 
+  var subject = dataMail[CONFIG.COMUNICAZIONE_RIGA_DATI][cOggetto];
+  var testo = dataMail[CONFIG.COMUNICAZIONE_RIGA_DATI][cTesto];
+
+  // Controllo preventivo: non partire con un invio di massa se oggetto/testo sono vuoti
+  if (!subject || !testo) {
+    logEvent(CONFIG.LOG.LIVELLI.WARNING, FN, "Oggetto o testo della comunicazione di massa mancanti: invio annullato.");
+    return;
+  }
+
   // Loop attraverso tutti i dati a partire dalla seconda riga (indice 1)
   var emailArray = [];
 var inviate = {};  // oggetto per tracciare gli indirizzi email già usati
+var inviateConSuccesso = 0;
+var fallite = 0;
 
 for (var i = 1; i < data.length; i++) {
   emailArray[i] = data[i][cEmail];
@@ -294,46 +390,87 @@ for (var i = 1; i < data.length; i++) {
   if (!emailAddress || inviate[emailAddress]) {
     continue;
   }
+  // Controllo preventivo: indirizzo email plausibile
+  if (!isValidEmail_(emailAddress)) {
+    logEvent(CONFIG.LOG.LIVELLI.WARNING, FN, "Indirizzo email non valido (\"" + emailAddress + "\") alla riga " + (i + 1) + ", saltato.");
+    continue;
+  }
 
   console.log(name, emailAddress);
 
-  var subject = dataMail[CONFIG.COMUNICAZIONE_RIGA_DATI][cOggetto];
-  var testo = dataMail[CONFIG.COMUNICAZIONE_RIGA_DATI][cTesto];
   var body = "<p>Ciao " + name + "!</p>" +
       "<p>" + testo + "</p>" +
       "<p>A prestissimo!<br>" +
       CONFIG.EMAIL.MITTENTE_FIRMA + ".</p>";
 
-  // Invia l'email in formato HTML
-  MailApp.sendEmail({
-    to: emailAddress,
-    subject: subject,
-    htmlBody: body
-  });
+  // Invia l'email in formato HTML; un fallimento su un destinatario non deve
+  // interrompere l'invio agli altri.
+  try {
+    MailApp.sendEmail({
+      to: emailAddress,
+      subject: subject,
+      htmlBody: body
+    });
+    inviateConSuccesso++;
+  } catch (e) {
+    fallite++;
+    logEvent(CONFIG.LOG.LIVELLI.ERROR, FN, "Invio comunicazione di massa fallito per \"" + emailAddress + "\".", e);
+  }
 
   // Salva l'indirizzo tra quelli già usati
   inviate[emailAddress] = true;
 
 }
 
+  logEvent(CONFIG.LOG.LIVELLI.INFO, FN, "Comunicazione di massa completata: " + inviateConSuccesso + " inviate, " + fallite + " fallite.");
+
   // Salva l'oggetto e il testo inviato nella riga 2
-  foglioMail.getRange(2, idxOggettoUltimaMail + 1).setValue(subject);
-  foglioMail.getRange(2, idxTestoUltimaMail + 1).setValue(testo);
-  foglioMail.getRange(2,idxInviaMailATutti +1).setValue("");
-  foglioMail.getRange(2,cTesto +1).setValue("");
-  foglioMail.getRange(2,cOggetto +1).setValue("");
+  try {
+    foglioMail.getRange(2, idxOggettoUltimaMail + 1).setValue(subject);
+    foglioMail.getRange(2, idxTestoUltimaMail + 1).setValue(testo);
+    foglioMail.getRange(2,idxInviaMailATutti +1).setValue("");
+    foglioMail.getRange(2,cTesto +1).setValue("");
+    foglioMail.getRange(2,cOggetto +1).setValue("");
+  } catch (e) {
+    logEvent(CONFIG.LOG.LIVELLI.ERROR, FN, "Aggiornamento colonne di storico/reset nel foglio comunicazione fallito.", e);
+  }
 }
 
 /************** ASSEGNAZIONE STANZA **************/
 function sendEmails() {
-  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(CONFIG.SHEETS.STANZE);
+  var FN = "sendEmails";
+  var sheet;
+  try {
+    sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(CONFIG.SHEETS.STANZE);
+  } catch (e) {
+    logEvent(CONFIG.LOG.LIVELLI.ERROR, FN, "Impossibile accedere al foglio \"" + CONFIG.SHEETS.STANZE + "\".", e);
+    return;
+  }
+  if (!sheet) {
+    logEvent(CONFIG.LOG.LIVELLI.ERROR, FN, "Foglio \"" + CONFIG.SHEETS.STANZE + "\" non trovato.");
+    return;
+  }
+  if (sheet.getLastRow() <= 1) {
+    logEvent(CONFIG.LOG.LIVELLI.WARNING, FN, "Nessuna riga di assegnazione stanza da processare.");
+    return;
+  }
+
   var data = sheet.getRange(2, 1, sheet.getLastRow() - 1, 4).getValues(); // Prendi i dati dalle colonne A-D
+  var inviateConSuccesso = 0;
+  var fallite = 0;
 
   data.forEach(function(row, index) {
     var lastName = row[CONFIG.STANZE_COLONNE.COGNOME]; // Cognome in colonna A
     var firstName = row[CONFIG.STANZE_COLONNE.NOME]; // Nome in colonna B
     var email = row[CONFIG.STANZE_COLONNE.EMAIL]; // Indirizzo email in colonna C
     var room = row[CONFIG.STANZE_COLONNE.STANZA]; // Stanza assegnata in colonna D
+
+    // Controllo preventivo: dati essenziali presenti prima di costruire/inviare l'email
+    if (!email || !isValidEmail_(email) || !room) {
+      fallite++;
+      logEvent(CONFIG.LOG.LIVELLI.WARNING, FN, "Riga " + (index + 2) + ": email non valida o stanza mancante, invio saltato.");
+      return; // continue nel forEach
+    }
 
     // Trova i compagni di stanza
     var roommates = data
@@ -368,13 +505,26 @@ function sendEmails() {
     message += "<br>";
     message += "<p>Per ulteriori informazioni e gli ultimi aggiornamenti visita il <a href='" + CONFIG.EMAIL.SITO_CUNFEST_URL + "'>sito del CUNFest</a>.</p>";
 
-    MailApp.sendEmail({
-      to: email,
-      subject: subject,
-      htmlBody: message
-    });
+    // Un fallimento sul singolo destinatario non deve interrompere gli altri invii.
+    try {
+      MailApp.sendEmail({
+        to: email,
+        subject: subject,
+        htmlBody: message
+      });
+      inviateConSuccesso++;
+    } catch (e) {
+      fallite++;
+      logEvent(CONFIG.LOG.LIVELLI.ERROR, FN, "Invio mail assegnazione stanza fallito per \"" + email + "\" (riga " + (index + 2) + ").", e);
+    }
   });
-  
+
+  logEvent(CONFIG.LOG.LIVELLI.INFO, FN, "Invio assegnazione stanze completato: " + inviateConSuccesso + " inviate, " + fallite + " fallite/saltate.");
+
   // Resetta il valore di H4 dopo l'invio delle email
-  sheet.getRange(CONFIG.CELLE.STANZE_ESITO_INVIO).setValue(CONFIG.STATI.ESITO_STANZE_INVIATE);
+  try {
+    sheet.getRange(CONFIG.CELLE.STANZE_ESITO_INVIO).setValue(CONFIG.STATI.ESITO_STANZE_INVIATE);
+  } catch (e) {
+    logEvent(CONFIG.LOG.LIVELLI.ERROR, FN, "Scrittura esito in " + CONFIG.CELLE.STANZE_ESITO_INVIO + " fallita.", e);
+  }
 }

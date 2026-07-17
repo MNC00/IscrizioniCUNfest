@@ -11,108 +11,162 @@
 
 /************** FOGLIO "ISCRIZIONI ORDINATE" **************/
 function creaFoglioOrdinato() {
+  var FN = "creaFoglioOrdinato";
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sheetRisposte = ss.getSheetByName(CONFIG.SHEETS.ISCRIZIONI); // Foglio collegato al modulo
   var sheetOrdinato = ss.getSheetByName(CONFIG.SHEETS.ORDINATE);    // Foglio da aggiornare
 
-  // Leggi tutto il contenuto del foglio con le risposte
-  var data = sheetRisposte.getDataRange().getValues();
+  // Controllo preventivo: entrambi i fogli devono esistere prima di procedere
+  if (!sheetRisposte || !sheetOrdinato) {
+    logEvent(CONFIG.LOG.LIVELLI.ERROR, FN, "Foglio \"" + CONFIG.SHEETS.ISCRIZIONI + "\" o \"" + CONFIG.SHEETS.ORDINATE + "\" non trovato.");
+    return;
+  }
 
-  // Cancella tutto nel foglio ordinato (tranne il foglio stesso)
-  sheetOrdinato.clearContents();
+  try {
+    // Leggi tutto il contenuto del foglio con le risposte
+    var data = sheetRisposte.getDataRange().getValues();
 
-  // Copia i dati nel foglio ordinato
-  sheetOrdinato.getRange(1, 1, data.length, data[0].length).setValues(data);
+    if (!data || data.length === 0) {
+      logEvent(CONFIG.LOG.LIVELLI.WARNING, FN, "Nessun dato da copiare nel foglio ordinato.");
+      return;
+    }
 
-  // Ordina per colonna 2 (B), partendo dalla riga 2 (per mantenere l’intestazione)
-  sheetOrdinato.getRange(2, 1, data.length - 1, data[0].length).sort([{ column: 2, ascending: true },{ column: 3, ascending: true }]);
-// Colora l’intestazione
-sheetOrdinato.getRange(1, 1, 1, data[0].length).setBackground(CONFIG.COLORI.INTESTAZIONE_VERDE).setFontWeight("bold");
-sheetOrdinato.setFrozenRows(1);
+    // Cancella tutto nel foglio ordinato (tranne il foglio stesso)
+    sheetOrdinato.clearContents();
 
-// Adatta larghezza colonne al contenuto
-for (var col = 1; col <= data[0].length; col++) {sheetOrdinato.autoResizeColumn(col);}
+    // Copia i dati nel foglio ordinato
+    sheetOrdinato.getRange(1, 1, data.length, data[0].length).setValues(data);
+
+    // Ordina per colonna 2 (B), partendo dalla riga 2 (per mantenere l’intestazione)
+    if (data.length > 1) {
+      sheetOrdinato.getRange(2, 1, data.length - 1, data[0].length).sort([{ column: 2, ascending: true },{ column: 3, ascending: true }]);
+    }
+    // Colora l’intestazione
+    sheetOrdinato.getRange(1, 1, 1, data[0].length).setBackground(CONFIG.COLORI.INTESTAZIONE_VERDE).setFontWeight("bold");
+    sheetOrdinato.setFrozenRows(1);
+
+    // Adatta larghezza colonne al contenuto
+    for (var col = 1; col <= data[0].length; col++) {sheetOrdinato.autoResizeColumn(col);}
+  } catch (e) {
+    logEvent(CONFIG.LOG.LIVELLI.ERROR, FN, "Rigenerazione del foglio \"" + CONFIG.SHEETS.ORDINATE + "\" fallita.", e);
+  }
 }
 
 /************** FOGLIO "PAGAMENTO" **************/
 function creaFoglioPagamento() {
+  var FN = "creaFoglioPagamento";
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sheetRisposte = ss.getSheetByName(CONFIG.SHEETS.ISCRIZIONI);
   var sheetRiepilogo = ss.getSheetByName(CONFIG.SHEETS.PAGAMENTO);
 
-  var headerRisposte = sheetRisposte.getRange(1, 1, 1, sheetRisposte.getLastColumn()).getValues()[0];
-  var datiRisposte = sheetRisposte.getRange(2, 1, sheetRisposte.getLastRow() - 1, headerRisposte.length).getValues();
-
-  var campiDesiderati = CONFIG.CAMPI_PAGAMENTO;
-
-  // Crea intestazione se non esiste
-  if (sheetRiepilogo.getLastRow() === 0) {
-    sheetRiepilogo.appendRow(campiDesiderati.concat("Pagato"));
-    sheetRiepilogo.getRange(1, 1, 1, campiDesiderati.length + 1).setBackground(CONFIG.COLORI.INTESTAZIONE_VERDE).setFontWeight("bold");
-    sheetRiepilogo.setFrozenRows(1);
+  // Controllo preventivo: entrambi i fogli devono esistere prima di procedere
+  if (!sheetRisposte || !sheetRiepilogo) {
+    logEvent(CONFIG.LOG.LIVELLI.ERROR, FN, "Foglio \"" + CONFIG.SHEETS.ISCRIZIONI + "\" o \"" + CONFIG.SHEETS.PAGAMENTO + "\" non trovato.");
+    return;
   }
 
-  var datiRiepilogo = sheetRiepilogo.getDataRange().getValues();
-  var headerRiepilogo = datiRiepilogo[0];
-  var righeAggiornate = 0;
+  try {
+    var headerRisposte = sheetRisposte.getRange(1, 1, 1, sheetRisposte.getLastColumn()).getValues()[0];
 
-  for (var i = 0; i < datiRisposte.length; i++) {
-    var rigaRisposta = datiRisposte[i];
-    var nuovaRiga = campiDesiderati.map(function(campo) {
-      return rigaRisposta[headerRisposte.indexOf(campo)];
-    });
-    var nomeNew = norm(nuovaRiga[1]);
-    var cognomeNew = norm(nuovaRiga[0]);
-    var trovata = false;
+    if (sheetRisposte.getLastRow() <= 1) {
+      logEvent(CONFIG.LOG.LIVELLI.INFO, FN, "Nessuna riga di iscrizione da riportare nel foglio pagamento.");
+      return;
+    }
 
-    // Cerca corrispondenza nel foglio Riepilogo
-    for (var j = 1; j < datiRiepilogo.length; j++) {
-      var rigaEsistente = datiRiepilogo[j];
-      var nomeEsistente = norm(rigaEsistente[1]);
-      var cognomeEsistente = norm(rigaEsistente[0]);
+    var datiRisposte = sheetRisposte.getRange(2, 1, sheetRisposte.getLastRow() - 1, headerRisposte.length).getValues();
 
-      if (nomeEsistente === nomeNew && cognomeEsistente === cognomeNew) {
-        // Mantieni valore "pagato"
-        nuovaRiga.push(rigaEsistente[headerRiepilogo.length - 1]);
-        // Aggiorna la riga
-        sheetRiepilogo.getRange(j + 1, 1, 1, nuovaRiga.length).setValues([nuovaRiga]);
-        trovata = true;
-        break;
+    var campiDesiderati = CONFIG.CAMPI_PAGAMENTO;
+
+    // Crea intestazione se non esiste
+    if (sheetRiepilogo.getLastRow() === 0) {
+      sheetRiepilogo.appendRow(campiDesiderati.concat("Pagato"));
+      sheetRiepilogo.getRange(1, 1, 1, campiDesiderati.length + 1).setBackground(CONFIG.COLORI.INTESTAZIONE_VERDE).setFontWeight("bold");
+      sheetRiepilogo.setFrozenRows(1);
+    }
+
+    var datiRiepilogo = sheetRiepilogo.getDataRange().getValues();
+    var headerRiepilogo = datiRiepilogo[0];
+    var righeAggiornate = 0;
+
+    for (var i = 0; i < datiRisposte.length; i++) {
+      var rigaRisposta = datiRisposte[i];
+      var nuovaRiga = campiDesiderati.map(function(campo) {
+        return rigaRisposta[headerRisposte.indexOf(campo)];
+      });
+      var nomeNew = norm(nuovaRiga[1]);
+      var cognomeNew = norm(nuovaRiga[0]);
+      var trovata = false;
+
+      // Cerca corrispondenza nel foglio Riepilogo
+      for (var j = 1; j < datiRiepilogo.length; j++) {
+        var rigaEsistente = datiRiepilogo[j];
+        var nomeEsistente = norm(rigaEsistente[1]);
+        var cognomeEsistente = norm(rigaEsistente[0]);
+
+        if (nomeEsistente === nomeNew && cognomeEsistente === cognomeNew) {
+          // Mantieni valore "pagato"
+          nuovaRiga.push(rigaEsistente[headerRiepilogo.length - 1]);
+          // Aggiorna la riga
+          sheetRiepilogo.getRange(j + 1, 1, 1, nuovaRiga.length).setValues([nuovaRiga]);
+          trovata = true;
+          break;
+        }
+      }
+
+      if (!trovata) {
+        nuovaRiga.push(""); // colonna pagato vuota
+        sheetRiepilogo.appendRow(nuovaRiga);
       }
     }
 
-    if (!trovata) {
-      nuovaRiga.push(""); // colonna pagato vuota
-      sheetRiepilogo.appendRow(nuovaRiga);
+    // Ordina per Cognome (col 1) e Nome (col 2)
+    var numRows = sheetRiepilogo.getLastRow();
+    var numCols = sheetRiepilogo.getLastColumn();
+    if (numRows > 1) {
+      sheetRiepilogo.getRange(2, 1, numRows - 1, numCols)
+                    .sort([{ column: 1, ascending: true }, { column: 2, ascending: true }]);
     }
-  }
 
-  // Ordina per Cognome (col 1) e Nome (col 2)
-  var numRows = sheetRiepilogo.getLastRow();
-  var numCols = sheetRiepilogo.getLastColumn();
-  sheetRiepilogo.getRange(2, 1, numRows - 1, numCols)
-                .sort([{ column: 1, ascending: true }, { column: 2, ascending: true }]);
-
-  // Auto resize colonne (minimo 100px)
-  for (var col = 1; col <= numCols; col++) {
-    sheetRiepilogo.autoResizeColumn(col);
-    if (sheetRiepilogo.getColumnWidth(col) < CONFIG.LARGHEZZA_COLONNA_MINIMA_PAGAMENTO) {
-      sheetRiepilogo.setColumnWidth(col, CONFIG.LARGHEZZA_COLONNA_MINIMA_PAGAMENTO);
+    // Auto resize colonne (minimo 100px)
+    for (var col = 1; col <= numCols; col++) {
+      sheetRiepilogo.autoResizeColumn(col);
+      if (sheetRiepilogo.getColumnWidth(col) < CONFIG.LARGHEZZA_COLONNA_MINIMA_PAGAMENTO) {
+        sheetRiepilogo.setColumnWidth(col, CONFIG.LARGHEZZA_COLONNA_MINIMA_PAGAMENTO);
+      }
     }
+  } catch (e) {
+    logEvent(CONFIG.LOG.LIVELLI.ERROR, FN, "Aggiornamento del foglio \"" + CONFIG.SHEETS.PAGAMENTO + "\" fallito.", e);
   }
 }
 
 /************** TABELLA PASTI **************/
 function generaTabellaPasti() {
+  var FN = "generaTabellaPasti";
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sheetIscrizioni = ss.getSheetByName(CONFIG.SHEETS.ISCRIZIONI);
   var sheetInfo = ss.getSheets()[CONFIG.SHEETS.INDEX_TARIFFE]; // Secondo foglio
+
+  // Controllo preventivo: i fogli sorgente devono esistere prima di procedere
+  if (!sheetIscrizioni || !sheetInfo) {
+    logEvent(CONFIG.LOG.LIVELLI.ERROR, FN, "Foglio \"" + CONFIG.SHEETS.ISCRIZIONI + "\" o foglio tariffe (indice CONFIG.SHEETS.INDEX_TARIFFE) non trovato.");
+    return;
+  }
+
   var sheetPasti = ss.getSheetByName(CONFIG.SHEETS.TABELLA_PASTI) || ss.insertSheet(CONFIG.SHEETS.TABELLA_PASTI);
-  sheetPasti.clearContents();
 
   // Date inizio/fine dal secondo foglio (celle D1 e D2)
   var dataInizioCUN = new Date(sheetInfo.getRange(CONFIG.CELLE.DATA_INIZIO_CUN).getValue());
   var dataFineCUN = new Date(sheetInfo.getRange(CONFIG.CELLE.DATA_FINE_CUN).getValue());
+
+  // Controllo preventivo: le date devono essere valide prima di rigenerare la tabella
+  if (isNaN(dataInizioCUN) || isNaN(dataFineCUN)) {
+    logEvent(CONFIG.LOG.LIVELLI.ERROR, FN, "Date CUN non valide nelle celle " + CONFIG.CELLE.DATA_INIZIO_CUN + "/" + CONFIG.CELLE.DATA_FINE_CUN + " del foglio tariffe: rigenerazione annullata.");
+    return;
+  }
+
+  sheetPasti.clearContents();
+
+  try {
 
   var dataInizioTabella = new Date(dataInizioCUN);
   dataInizioTabella.setDate(dataInizioTabella.getDate() - 8);
@@ -286,5 +340,8 @@ function generaTabellaPasti() {
   // Auto-resize
   for (var c = 1; c <= 8; c++) {
     sheetPasti.autoResizeColumn(c);
+  }
+  } catch (e) {
+    logEvent(CONFIG.LOG.LIVELLI.ERROR, FN, "Rigenerazione della tabella pasti (\"" + CONFIG.SHEETS.TABELLA_PASTI + "\") fallita.", e);
   }
 }

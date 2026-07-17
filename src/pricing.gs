@@ -70,11 +70,18 @@ function trovaDateCUN(sheet) {
 
 /************** CALCOLATORE PREZZI **************/
 function AutoCalcolatorePrezzi_tuamadre() {
-  
+  var FN = "AutoCalcolatorePrezzi_tuamadre";
+
   // Apri il foglio di calcolo associato al modulo Google.
   var foglioCalcolo = SpreadsheetApp.getActiveSpreadsheet();
   var foglio = foglioCalcolo.getSheets()[CONFIG.SHEETS.INDEX_ISCRIZIONI]; // Modifica l'indice se necessario.
   var foglio2 = foglioCalcolo.getSheets()[CONFIG.SHEETS.INDEX_TARIFFE];
+
+  // Controllo preventivo: i fogli sorgente devono esistere prima di procedere
+  if (!foglio || !foglio2) {
+    logEvent(CONFIG.LOG.LIVELLI.ERROR, FN, "Foglio iscrizioni (indice CONFIG.SHEETS.INDEX_ISCRIZIONI) o foglio tariffe (indice CONFIG.SHEETS.INDEX_TARIFFE) non trovato.");
+    return;
+  }
 
   // Ottieni i dati dal foglio di calcolo.
   var dati = foglio.getDataRange().getValues();
@@ -109,7 +116,13 @@ function AutoCalcolatorePrezzi_tuamadre() {
   var sconti_911 = tariffe[CONFIG.TARIFFE_RIGHE.SCONTO_ETA_9_11][CONFIG.TARIFFE_COLONNA_VALORE];
   var sconti_1214 = tariffe[CONFIG.TARIFFE_RIGHE.SCONTO_ETA_12_14][CONFIG.TARIFFE_COLONNA_VALORE];
 
-  var dateCUN = trovaDateCUN(foglio2);
+  var dateCUN;
+  try {
+    dateCUN = trovaDateCUN(foglio2);
+  } catch (e) {
+    logEvent(CONFIG.LOG.LIVELLI.ERROR, FN, "Impossibile determinare le date del CUN dal foglio tariffe: calcolo prezzi annullato.", e);
+    return;
+  }
   var data_inizio_cun = dateCUN.dataInizio;
   var limiteDataFine = dateCUN.dataFine;
   var limiteMeno7Giorni = new Date(limiteDataFine);
@@ -117,7 +130,8 @@ function AutoCalcolatorePrezzi_tuamadre() {
 
 
   if (!data_inizio_cun || !limiteDataFine) {
-    throw new Error("⚠️ Le date 'data_inizio_cun' o 'limite_data_fine' non sono valide o mancanti nel foglio tariffe.");
+    logEvent(CONFIG.LOG.LIVELLI.ERROR, FN, "Le date 'data_inizio_cun' o 'limite_data_fine' non sono valide o mancanti nel foglio tariffe.");
+    return;
   }
 
 console.log('DATA CUN lette da config:', data_inizio_cun, limiteDataFine);
@@ -174,6 +188,12 @@ console.log('DATA CUN lette da config:', data_inizio_cun, limiteDataFine);
     var dataFineSenzaOra = new Date(dataFine.getFullYear(), dataFine.getMonth(), dataFine.getDate());
     var dataNascitaSenzaOra = new Date(data_nascita.getFullYear(), data_nascita.getMonth(), data_nascita.getDate());
     var oggiSenzaOra = new Date(2025, oggi.getMonth(), oggi.getDate());
+
+    // Controllo preventivo: date non valide per questa riga -> salta la riga senza bloccare le altre
+    if (isNaN(dataInizioSenzaOra) || isNaN(dataFineSenzaOra) || isNaN(dataNascitaSenzaOra)) {
+      logEvent(CONFIG.LOG.LIVELLI.WARNING, FN, "Riga " + (riga + 1) + " (\"" + dati[riga][1] + "\") saltata: data di arrivo, partenza o nascita non valida.");
+      continue;
+    }
 
     console.log('Data di fine:', dataFineSenzaOra, 'Valore della cella alla riga', riga, 'colonna nome:', dati[riga][1]);
 
@@ -336,7 +356,11 @@ console.log('DATA CUN lette da config:', data_inizio_cun, limiteDataFine);
         prezzo_finale = prezzo_finale - sconto;
       }
 
+      try {
       foglio.getRange(riga + 1, idxPrezzo +1 ).setValue(Math.ceil(prezzo_finale));
+      } catch (e) {
+        logEvent(CONFIG.LOG.LIVELLI.ERROR, FN, "Scrittura del prezzo fallita per la riga " + (riga + 1) + " (\"" + dati[riga][1] + "\").", e);
+      }
 
     } else {
       var prezzo_finale = solo_pranzo_CUN;
@@ -354,7 +378,11 @@ console.log('DATA CUN lette da config:', data_inizio_cun, limiteDataFine);
         prezzo_finale = prezzo_finale - sconto;
       }
 
+      try {
       foglio.getRange(riga + 1, idxPrezzo + 1).setValue(Math.ceil(prezzo_finale));
+      } catch (e) {
+        logEvent(CONFIG.LOG.LIVELLI.ERROR, FN, "Scrittura del prezzo (solo pranzo CUN) fallita per la riga " + (riga + 1) + " (\"" + dati[riga][1] + "\").", e);
+      }
 
     }
 

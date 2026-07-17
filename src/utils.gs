@@ -70,3 +70,16 @@ function formatDate(dateStr) {
 function getAnnoAttuale() {
   return new Date().getFullYear();
 }
+
+/**
+ * Controllo preventivo minimo di validità di un indirizzo email, usato prima
+ * di qualsiasi invio (Fase 5.1 - "verificare che un invio email non parta
+ * con dati mancanti"). Non sostituisce una validazione RFC completa: serve
+ * solo a intercettare i casi più comuni di dato mancante o palesemente errato.
+ */
+function isValidEmail_(email) {
+  if (!email) return false;
+  var s = String(email).trim();
+  if (!s) return false;
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
+}
