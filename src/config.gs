@@ -18,15 +18,65 @@
  * "standalone" (non più bound), basterà valorizzarlo qui, in un unico punto.
  * Non sono stati trovati indirizzi email scritti a mano: tutte le email sono
  * lette dinamicamente dalle righe dei fogli.
+ *
+ * ----------------------- AMBIENTE TEST / PROD -----------------------------
+ * Le uniche chiavi che possono cambiare passando dall'ambiente di test a
+ * quello di produzione sono raccolte in CONFIG.ENVIRONMENTS.TEST /
+ * CONFIG.ENVIRONMENTS.PROD. Tutto il resto di CONFIG (SHEETS, LOG, CELLE,
+ * COLONNE, STATI, EMAIL, ecc.) resta identico in entrambi gli ambienti e
+ * NON viene duplicato.
+ *
+ * Per passare a produzione basta cambiare CONFIG.ENV in fondo a questo file
+ * (da "TEST" a "PROD"): nessun'altra modifica di codice è richiesta.
+ *
+ * Il valore di default (CONFIG.ENV = "TEST") riproduce esattamente il
+ * comportamento attuale del progetto: nessuna modifica di comportamento è
+ * introdotta da questa struttura finché non si cambia esplicitamente ENV.
+ *
+ * NOTA: EMAIL_SAFE_MODE / EMAIL_SAFE_RECIPIENT sono predisposti per un uso
+ * futuro (dirottare le email verso un indirizzo di sicurezza in test), ma
+ * non sono ancora letti da email.gs: aggiungerli qui non cambia il
+ * comportamento di invio email attuale.
  * ---------------------------------------------------------------------------
  */
 
 var CONFIG = {
 
+  /* ===================== AMBIENTE ATTIVO ===================== */
+  // Unico switch da cambiare per passare da test a produzione.
+  // Valori ammessi: "TEST" | "PROD".
+  ENV: "TEST",
+
+  // Chiavi environment-specific. Aggiungere qui nuove chiavi solo se il loro
+  // valore deve davvero differire tra TEST e PROD; tutto il resto va nelle
+  // sezioni "condivise" più sotto.
+  ENVIRONMENTS: {
+    TEST: {
+      // "" = usa lo spreadsheet a cui lo script è bound (comportamento attuale)
+      SPREADSHEET_ID: "",
+      // ID del Google Form di test. Non ancora usato da nessuna funzione del
+      // progetto (il Form comunica solo via trigger ON_FORM_SUBMIT), tenuto
+      // qui pronto per eventuali usi futuri (es. validazioni via FormApp).
+      FORM_ID: "",
+      // Se true, le funzioni di invio email potranno in futuro dirottare
+      // tutti gli invii verso EMAIL_SAFE_RECIPIENT invece dell'indirizzo
+      // reale dell'iscritto. Non ancora collegato a email.gs.
+      EMAIL_SAFE_MODE: false,
+      EMAIL_SAFE_RECIPIENT: ""
+    },
+    PROD: {
+      SPREADSHEET_ID: "",
+      FORM_ID: "",
+      EMAIL_SAFE_MODE: false,
+      EMAIL_SAFE_RECIPIENT: ""
+    }
+  },
+
   /* ===================== SPREADSHEET ===================== */
   // ID esplicito del Google Sheet. Lasciare "" per usare lo spreadsheet a cui
   // lo script è collegato (SpreadsheetApp.getActiveSpreadsheet()), come fa
   // oggi tutto il codice del progetto.
+  // Valore reale assegnato in fondo al file da CONFIG.ENVIRONMENTS[CONFIG.ENV].
   SPREADSHEET_ID: "",
 
   /* ===================== NOMI DEI FOGLI (TAB) ===================== */
@@ -242,3 +292,25 @@ var CONFIG = {
     OGGETTO_ASSEGNAZIONE_STANZA: "Assegnazione Stanza"
   }
 };
+
+/**
+ * Applica le chiavi environment-specific dell'ambiente selezionato
+ * (CONFIG.ENV) sopra i placeholder condivisi in CONFIG.
+ *
+ * Unico punto di collegamento tra CONFIG.ENVIRONMENTS e il resto di CONFIG:
+ * tutto il codice esistente continua a leggere CONFIG.SPREADSHEET_ID (e le
+ * altre chiavi qui sotto) esattamente come prima, senza dover conoscere il
+ * concetto di "ambiente".
+ */
+(function applyEnvironment_(config) {
+  var env = config.ENVIRONMENTS[config.ENV];
+
+  if (!env) {
+    throw new Error("CONFIG.ENV non valido: \"" + config.ENV + "\". Valori ammessi: " + Object.keys(config.ENVIRONMENTS).join(", "));
+  }
+
+  config.SPREADSHEET_ID = env.SPREADSHEET_ID;
+  config.FORM_ID = env.FORM_ID;
+  config.EMAIL_SAFE_MODE = env.EMAIL_SAFE_MODE;
+  config.EMAIL_SAFE_RECIPIENT = env.EMAIL_SAFE_RECIPIENT;
+})(CONFIG);
