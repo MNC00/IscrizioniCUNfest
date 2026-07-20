@@ -3,7 +3,7 @@
  * ---------------------------------------------------------------------------
  * Punto unico di configurazione del progetto "Iscrizioni CUN Fest".
  * Contiene tutti i nomi di foglio, indici di riga/colonna hardcoded, celle
- * fisse, stati testuali ricorrenti, colori e testi email attualmente sparsi
+ * fisse, stati testuali ricorrenti, colori e testi email fino ad ora sparsi
  * nei vari file .gs.
  *
  * IMPORTANTE: questo file NON introduce nessuna modifica di comportamento.
