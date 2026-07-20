@@ -1,5 +1,7 @@
 # 3.2 – Dizionario dei Dati
 
+> ⚠️ **Aggiornamento Iterazione 3 (2026-07-20)**: aggiunta la colonna consolidata **"Stato Iscrizione"** al tab "Iscrizioni CUN Fest" (scritta da `aggiornaStatoIscrizione()`, riassume mail/nuovo invio/pagato in un'unica etichetta). Le colonne "Nuovo invio" (qui sotto) e "Pagato" (tab Pagamento) ora hanno anche un menu a discesa (Data Validation) oltre al testo libero. Il tab "Stanze" descritto in fondo a questo documento non esiste più nel codice (rimosso, non più usato). Vedi `7_3_decision_log.md` per i dettagli.
+
 > **Nota sulle fonti**: nel workspace non è presente il file `struttura_foglio.csv` indicato nella traccia. Le intestazioni di colonna sono state ricavate da `docs/Iscrizioni CUN Fest 2026.xlsx` (i vari tab dello spreadsheet) e incrociate con tutte le operazioni di lettura/scrittura effettuate nei file `.js` presenti in `src/`.
 
 Legenda **Origine Modifica**:

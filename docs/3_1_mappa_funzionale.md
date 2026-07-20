@@ -1,5 +1,7 @@
 # 3.1 – Mappa Funzionale: "Come funziona oggi"
 
+> ⚠️ **Aggiornamento Iterazione 3 (2026-07-20)**: il workflow descritto qui sotto riflette lo stato PRIMA della riprogettazione decisa in `7_3_decision_log.md`. Cambiamenti principali già implementati nel codice: (1) il tab "Stanze" e le relative funzioni sono stati rimossi; (2) l'invio massivo non parte più scrivendo "si" in una cella ma solo dal menu "Iscrizioni CUN Fest ▸ Invia comunicazione a tutti gli iscritti…" con conferma; (3) "Nuovo invio" e "Pagato" sono ora dropdown (Data Validation) invece di testo libero; (4) esiste una colonna consolidata "Stato Iscrizione" oltre alle colonne granulari descritte sotto; (5) `creaFoglioOrdinato`/`creaFoglioPagamento`/`generaTabellaPasti` non girano più in sincrono ad ogni submit/edit, ma vengono eseguiti in batch ogni ~5 minuti da `rigeneraViewsSeNecessario()`. Il resto della mappa sotto (calcolo prezzo, contenuto email, controlli) resta valido.
+
 > Percorso di un'iscrizione dal momento in cui una persona compila il Google Form fino alla fine del processo (pagamento e, se previsto, assegnazione stanza). Linguaggio semplice, pensato anche per chi non programma.
 
 ---

@@ -69,17 +69,17 @@ function trovaDateCUN(sheet) {
 
 
 /************** CALCOLATORE PREZZI **************/
-function AutoCalcolatorePrezzi_tuamadre() {
-  var FN = "AutoCalcolatorePrezzi_tuamadre";
+function calcolaPrezziIscrizioni() {
+  var FN = "calcolaPrezziIscrizioni";
 
-  // Apri il foglio di calcolo associato al modulo Google.
-  var foglioCalcolo = SpreadsheetApp.getActiveSpreadsheet();
-  var foglio = foglioCalcolo.getSheets()[CONFIG.SHEETS.INDEX_ISCRIZIONI]; // Modifica l'indice se necessario.
-  var foglio2 = foglioCalcolo.getSheets()[CONFIG.SHEETS.INDEX_TARIFFE];
+  // Foglio iscrizioni/tariffe: cercati per nome, con fallback automatico
+  // all'indice di posizione se il nome non è (ancora) allineato (repository.gs).
+  var foglio = getIscrizioniSheet_(FN);
+  var foglio2 = getTariffeSheet_(FN);
 
   // Controllo preventivo: i fogli sorgente devono esistere prima di procedere
   if (!foglio || !foglio2) {
-    logEvent(CONFIG.LOG.LIVELLI.ERROR, FN, "Foglio iscrizioni (indice CONFIG.SHEETS.INDEX_ISCRIZIONI) o foglio tariffe (indice CONFIG.SHEETS.INDEX_TARIFFE) non trovato.");
+    logEvent(CONFIG.LOG.LIVELLI.ERROR, FN, "Foglio iscrizioni o foglio tariffe non trovato (vedi CONFIG.SHEETS.ISCRIZIONI/TARIFFE).");
     return;
   }
 
@@ -88,6 +88,13 @@ function AutoCalcolatorePrezzi_tuamadre() {
   var tariffe = foglio2.getDataRange().getValues();
   // Leggi la tabella di configurazione dal secondo foglio
   var cfg = readConfigMap(foglio2);
+
+  // Controllo preventivo: le righe del foglio tariffe devono contenere ancora
+  // le etichette attese (colonna A). Se qualcuno ha inserito/spostato una riga,
+  // ci si ferma qui con un errore leggibile invece di calcolare prezzi sbagliati.
+  if (!verificaEtichetteTariffe_(tariffe, FN)) {
+    return;
+  }
 
   var eta_giovane = tariffe [CONFIG.TARIFFE_RIGHE.ETA_GIOVANE_RIGA][CONFIG.TARIFFE_RIGHE.ETA_GIOVANE_COLONNA]
   
@@ -134,16 +141,6 @@ function AutoCalcolatorePrezzi_tuamadre() {
     return;
   }
 
-console.log('DATA CUN lette da config:', data_inizio_cun, limiteDataFine);
-
-
-  console.log('DATA CUN lette da config:', data_inizio_cun, limiteDataFine);
-
-
-  console.log('DATA CUN', data_inizio_cun);
-
-  console.log('Tariffe: ', tariffa_giorno_completo, tariffa_notte, tariffa_colazione, tariffa_pasto_principale, solo_pranzo_CUN, eta_giovane);
-
   // Controlla se le tariffe sono diverse da null
   if (
     !tariffa_giorno_completo ||
@@ -152,7 +149,6 @@ console.log('DATA CUN lette da config:', data_inizio_cun, limiteDataFine);
     !tariffa_pasto_principale ||
     !solo_pranzo_CUN
   ) {
-    //console.log('Almeno una delle tariffe è null. Uscita dalla funzione.');
     return;
   }
 
@@ -166,11 +162,7 @@ console.log('DATA CUN lette da config:', data_inizio_cun, limiteDataFine);
   var idxPrezzo = getCol(CONFIG.COLONNE.PREZZO, headerMap);
 
 
-  console.log('tumadre')
-
   for (var riga = 1; riga < dati.length; riga++) {
-
-    console.log('tumadre');
 
     var dataInizio = new Date(dati[riga][idxDataArrivo]);
     var dataFine = new Date(dati[riga][idxDataPartenza]);
@@ -179,10 +171,14 @@ console.log('DATA CUN lette da config:', data_inizio_cun, limiteDataFine);
 
     if (dataFine > limiteDataFine) {
       dataFine = limiteDataFine;
+      // NOTA (da correggere in iterazione 4 del refactoring, non toccare qui):
+      // "pippo" è dichiarata con `var` dentro questo `if`, quindi per hoisting
+      // resta nello scope dell'intera funzione e NON viene resettata a ogni
+      // giro del ciclo `for` sulle righe: una volta vera per una riga, resta
+      // vera anche per le righe successive nello stesso run. Comportamento
+      // preesistente, mantenuto identico intenzionalmente in questa iterazione.
       var pippo = true;
     }
-
-    console.log('Data di fine:', dataFine, 'Valore della cella alla riga', riga, 'colonna nome:', dati[riga][1]);
 
     var dataInizioSenzaOra = new Date(dataInizio.getFullYear(), dataInizio.getMonth(), dataInizio.getDate());
     var dataFineSenzaOra = new Date(dataFine.getFullYear(), dataFine.getMonth(), dataFine.getDate());
@@ -194,8 +190,6 @@ console.log('DATA CUN lette da config:', data_inizio_cun, limiteDataFine);
       logEvent(CONFIG.LOG.LIVELLI.WARNING, FN, "Riga " + (riga + 1) + " (\"" + dati[riga][1] + "\") saltata: data di arrivo, partenza o nascita non valida.");
       continue;
     }
-
-    console.log('Data di fine:', dataFineSenzaOra, 'Valore della cella alla riga', riga, 'colonna nome:', dati[riga][1]);
 
     var numero_notti = Math.round((dataFineSenzaOra - dataInizioSenzaOra) / (1000 * 60 * 60 * 24));
     var eta = Math.round((oggiSenzaOra - dataNascitaSenzaOra) / (1000 * 60 * 60 * 24 * 365.25));
@@ -235,30 +229,23 @@ console.log('DATA CUN lette da config:', data_inizio_cun, limiteDataFine);
         pasto_partenza = 1;
       }
 
-      console.log('pasto di partenza', dati[riga][15] + pasto_partenza);
-
       //Calcolo numero pasti totali
       var numero_pasti = 3 * numero_notti + (pasto_inizio - pasto_partenza);
-      //console.log('Numero Pasti', numero_pasti);
 
       //Calcolo giorni completi
       var giorni_completi = Math.floor(numero_pasti / 3);
-      //console.log('Giorni completi', giorni_completi);
 
       //Calcolo notti in più
       var notti_eccesso = numero_notti - giorni_completi;
-      //console.log('Notti in eccesso', notti_eccesso);
 
       //Calcolo pasti in più
       var pasti_eccesso = numero_pasti % 3; // numero_pasti - giorni_completi  <---- da discutere
-      //console.log('pasti in eccesso', pasti_eccesso);
 
       var x = Math.abs(pasto_partenza - pasto_inizio);
       var prezzo_finale;
       var y, z;
 
       if ((eta > eta_giovane) && dataInizio < data_inizio_cun) {
-        console.log('Entrato nella prima', dati[riga][1])
         y = tariffa_giorno_completo * giorni_completi;
         if (x !== 0 && x !== 3) {
           z = y + notti_eccesso * tariffa_notte;
@@ -282,7 +269,6 @@ console.log('DATA CUN lette da config:', data_inizio_cun, limiteDataFine);
         }
       } else {
         if (dataInizio >= data_inizio_cun) {
-          console.log('Entrato nella sezione UNINORD', dati[riga][1]);
           y = tariffa_giorno_completo_uninord * giorni_completi;
           if (x !== 0 || x !== 3) {
             z = y + notti_eccesso * tariffa_notte_uninord;
@@ -310,7 +296,6 @@ console.log('DATA CUN lette da config:', data_inizio_cun, limiteDataFine);
           }
           
         } else {
-          console.log('Entrato nella sezione giovani', dati[riga][1]);
           y = tariffa_giorno_completo_unisud * giorni_completi;
           if (x !== 0 || x !== 3) {
             z = y + notti_eccesso * tariffa_notte_unisud;

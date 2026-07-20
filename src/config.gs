@@ -85,12 +85,23 @@ var CONFIG = {
     ORDINATE: "Iscrizioni ordinate",         // Rigenerato da creaFoglioOrdinato()
     PAGAMENTO: "Pagamento",                  // Rigenerato/aggiornato da creaFoglioPagamento()
     TABELLA_PASTI: "Tabella Pasti",          // Rigenerato da generaTabellaPasti()
-    STANZE: "Stanze",                        // Non presente nell'export analizzato in Fase 1, da verificare
     LOG: "Log",                              // Tab di log tecnico, creato/usato da logEvent() in logger.gs
 
-    // Fogli acceduti per POSIZIONE (indice 0-based, getSheets()[n]) nel codice
-    // originale invece che per nome. Mantenuti qui come riferimento esplicito:
-    // se l'ordine dei tab nello spreadsheet cambia, questi indici si rompono.
+    // Nomi "target" dei due fogli finora acceduti solo per posizione (vedi
+    // INDEX_* più sotto). Da Iterazione 2 del refactoring (luglio 2026):
+    // repository.gs cerca PRIMA questi fogli per nome; se il tab reale ha un
+    // nome diverso, ricade automaticamente sull'indice di posizione (nessuna
+    // rottura) ma registra un avviso nel Log. Se i nomi qui sotto non
+    // corrispondono esattamente al tab reale, o rinominare il tab, o
+    // aggiornare questo valore: da quel momento il collegamento non dipende
+    // più dall'ordine dei fogli nello spreadsheet.
+    TARIFFE: "Tabella Costi e Istruzioni Fog",
+    COMUNICAZIONE: "Comunicazione a tutti gli iscritti",
+
+    // Fogli acceduti per POSIZIONE (indice 0-based, getSheets()[n]): usati
+    // solo come fallback da repository.gs quando il nome sopra non è (ancora)
+    // allineato al tab reale. Se l'ordine dei tab nello spreadsheet cambia
+    // E il nome non è allineato, questi indici si disallineano silenziosamente.
     INDEX_ISCRIZIONI: 0,      // Calcolatore prezzi.js, Generale mail.js, RecoveryEmail.js
     INDEX_TARIFFE: 1,         // "Tabella Costi e Istruzioni Fog" - Calcolatore prezzi.js, Tabella pasti.js
     INDEX_COMUNICAZIONE: 2    // "Comunicazione a tutti gli iscritti" - RecoveryEmail.js
@@ -111,13 +122,11 @@ var CONFIG = {
   /* ===================== CELLE FISSE (riferimenti diretti) ===================== */
   CELLE: {
     DATA_INIZIO_CUN: "D1",        // Foglio tariffe, letta da generaTabellaPasti (Tabella pasti.js)
-    DATA_FINE_CUN: "D2",          // Foglio tariffe, letta da generaTabellaPasti (Tabella pasti.js)
-    STANZE_COMANDO_INVIO: "H4",   // Foglio "Stanze", comando lanciato da invioStanze (InvioStanze.js)
-    STANZE_ESITO_INVIO: "J4"      // Foglio "Stanze", esito scritto da sendEmails (InvioStanze.js)
+    DATA_FINE_CUN: "D2"           // Foglio tariffe, letta da generaTabellaPasti (Tabella pasti.js)
   },
 
   /* ===================== FOGLIO TARIFFE: indici di riga hardcoded =====================
-   * Usati in AutoCalcolatorePrezzi_tuamadre (Calcolatore prezzi.js) come
+   * Usati in calcolaPrezziIscrizioni (Calcolatore prezzi.js) come
    * tariffe[RIGA][COLONNA_VALORE]. Se qualcuno inserisce/sposta una riga nel
    * foglio tariffe, questi indici si disallineano silenziosamente.
    */
@@ -156,7 +165,49 @@ var CONFIG = {
   // Etichette cercate per TESTO (non per indice) nel foglio tariffe da trovaDateCUN()
   TARIFFE_LABELS: {
     DATA_INIZIO_CUN: "data inizio cun",
-    DATA_FINE_CUN: "data fine cun"
+    DATA_FINE_CUN: "data fine cun",
+    // Intestazione della colonna E, una riga sopra il valore soglia "eta_giovane"
+    // (vedi TARIFFE_RIGHE.ETA_GIOVANE_RIGA/COLONNA). Usata solo per la verifica
+    // di coerenza in verificaEtichetteTariffe_() (repository.gs).
+    ETA_GIOVANE: "eta' che fino alla quale sei un giovane"
+  },
+
+  /* ===================== FOGLIO TARIFFE: etichette attese per riga (colonna A) =====================
+   * Usate da verificaEtichetteTariffe_() (repository.gs) per controllare, PRIMA
+   * di calcolare i prezzi, che ogni riga configurata in TARIFFE_RIGHE contenga
+   * ancora l'etichetta di testo attesa in colonna A. Se qualcuno inserisce o
+   * sposta una riga nel foglio tariffe, questo controllo lo segnala con un
+   * errore leggibile invece di far calcolare un prezzo sbagliato in silenzio.
+   *
+   * NOTA: le etichette si ripetono identiche nelle 3 sezioni del foglio
+   * (generali/CUN/giovani), quindi non possono sostituire la lettura per riga:
+   * servono solo a VERIFICARE che la riga giusta contenga ancora il testo giusto.
+   */
+  TARIFFE_ETICHETTE_ATTESE: {
+    GIORNO_COMPLETO: "costo giorno completo",
+    NOTTE: "costo solo pernottamento",
+    COLAZIONE: "costo colazione",
+    PASTO_PRINCIPALE: "costo pranzo/cena",
+    SOLO_PRANZO_CUN: "costo solo pranzo cun",
+
+    GIORNO_COMPLETO_UNINORD: "costo giorno completo",
+    NOTTE_UNINORD: "costo solo pernottamento",
+    COLAZIONE_UNINORD: "costo colazione",
+    PASTO_PRINCIPALE_UNINORD: "costo pranzo/cena",
+    SOLO_PRANZO_CUN_UNINORD: "costo solo pranzo cun",
+    TETTO_MASSIMO_UNINORD: "tetto massimo",
+
+    GIORNO_COMPLETO_UNISUD: "costo giorno completo",
+    NOTTE_UNISUD: "costo solo pernottamento",
+    COLAZIONE_UNISUD: "costo colazione",
+    PASTO_PRINCIPALE_UNISUD: "costo pranzo/cena",
+    SOLO_PRANZO_CUN_UNISUD: "costo solo pranzo cun",
+    TETTO_MASSIMO_UNISUD: "tetto massimo",
+
+    SCONTO_ETA_0_5: "0-5 anni",
+    SCONTO_ETA_6_8: "6-8 anni",
+    SCONTO_ETA_9_11: "9-11 anni",
+    SCONTO_ETA_12_14: "12-14 anni"
   },
 
   /* ===================== INTESTAZIONI COLONNA (alias per getCol/buildHeaderIndex) =====================
@@ -182,6 +233,10 @@ var CONFIG = {
     MAIL_CONFERMA_INVIATA: "Mail di conferma inviata",
     NUOVO_INVIO: "Nuovo invio",
     STATO_NUOVO_INVIO: "Stato nuovo invio",
+    // Colonna consolidata (Iterazione 3, 2026-07-20): unico campo leggibile
+    // che riassume mail/nuovo invio/pagato, scritta da aggiornaStatoIscrizione()
+    // (sheets.gs). Le colonne granulari sopra restano invariate come dettaglio.
+    STATO_ISCRIZIONE: "Stato Iscrizione",
 
     // Alias di ricerca per la colonna "Nuovo invio" usati da onEdit (Invia con prezzo.js)
     NUOVO_INVIO_ALIAS: ["nuovo invio", "nuovo invio mail", "invio con prezzo"]
@@ -199,12 +254,17 @@ var CONFIG = {
   // Riga (0-based) da cui sendRecoveryEmails legge oggetto/testo nel foglio Comunicazione (dataMail[1][...])
   COMUNICAZIONE_RIGA_DATI: 1,
 
-  // Colonne fisse (A-D, 0-based) lette per POSIZIONE nel foglio "Stanze" da InvioStanze.js
-  STANZE_COLONNE: {
-    COGNOME: 0,
-    NOME: 1,
-    EMAIL: 2,
-    STANZA: 3
+  /* ===================== LISTE PER DATA VALIDATION (dropdown) =====================
+   * Usate da configurarValidazioniComandi() (setup.gs, Iterazione 3, 2026-07-20)
+   * per trasformare le celle-comando a testo libero in dropdown, riducendo il
+   * rischio di errori di battitura/maiuscole che in passato bloccavano
+   * silenziosamente un'automazione. Il confronto nel codice resta
+   * case-insensitive/trim (vedi CONFIG.STATI), quindi cambiare qui il testo
+   * visualizzato nel dropdown non richiede altre modifiche.
+   */
+  LISTE: {
+    NUOVO_INVIO: ["", "Invia con prezzo"],   // colonna "Nuovo invio", foglio Iscrizioni
+    PAGATO: ["", "x"]                        // colonna "Pagato", foglio Pagamento
   },
 
   // Elenco campi copiati dal foglio "Iscrizioni CUN Fest" al foglio "Pagamento" (creaFoglioPagamento)
@@ -231,10 +291,7 @@ var CONFIG = {
     COMANDO_INVIA_CON_PREZZO: "invia con prezzo",   // valore atteso in "Nuovo invio" (confronto case-insensitive)
     GIA_FATTO: "già fatto",                          // scritto in "Nuovo invio" dopo un reinvio riuscito
 
-    COMANDO_INVIA_STANZE: "INVIA",                   // valore atteso in H4 tab "Stanze"
-    ESITO_STANZE_INVIATE: "Mail inviate con successo",
-
-    COMANDO_INVIA_A_TUTTI: "si",                     // valore atteso in "Invia mail a tutti?" (invioRecovery)
+    COMANDO_INVIA_A_TUTTI: "si",                     // valore atteso in "Invia mail a tutti?" (invioRecovery, ora solo per intercettare il vecchio comando)
 
     // ATTENZIONE - incoerenza già presente nel codice originale, riportata as-is:
     // in Calcolatore prezzi.js il confronto è ESATTO con "Si" (maiuscola);
@@ -288,8 +345,7 @@ var CONFIG = {
     SITO_CUNFEST_URL: "https://sites.google.com/view/pgstimm/cunfest?authuser=0",
 
     OGGETTO_CONFERMA_ISCRIZIONE: "Conferma Iscrizione CUN Fest",
-    OGGETTO_AGGIORNAMENTO_PREZZI: "Aggiornamento prezzi CUN Fest",
-    OGGETTO_ASSEGNAZIONE_STANZA: "Assegnazione Stanza"
+    OGGETTO_AGGIORNAMENTO_PREZZI: "Aggiornamento prezzi CUN Fest"
   }
 };
 

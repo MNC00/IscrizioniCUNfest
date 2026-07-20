@@ -2,15 +2,17 @@
  * EMAIL.gs
  * ---------------------------------------------------------------------------
  * Costruzione e invio di tutte le comunicazioni email: conferma iscrizione,
- * aggiornamento prezzo, comunicazione di massa, assegnazione stanza.
- * Nessuna modifica di comportamento rispetto agli originali "Generale
- * mail.js", "RecoveryEmail.js" e "InvioStanze.js" (solo sendEmails): IBAN,
- * causale, URL, oggetti e firma sono stati centralizzati in CONFIG.EMAIL.
+ * aggiornamento prezzo, comunicazione di massa.
+ *
+ * ITERAZIONE 3 (2026-07-20): rimossa la funzione sendEmails() di assegnazione
+ * stanza (tab "Stanze" non più usato, vedi decision log 7_3). L'invio massivo
+ * (sendRecoveryEmails) non parte più direttamente da un edit di cella: viene
+ * lanciato solo dal menu "Iscrizioni CUN Fest" dopo conferma esplicita
+ * dell'operatore (vedi setup.gs, avviaInvioComunicazioneDiMassa()).
  *
  * NOTA: la "causale di pagamento" e la firma "Gruppo Iscrizioni" comparivano
  * nell'originale con lievissime differenze di punteggiatura/maiuscole tra le
- * varie occorrenze (es. punto dentro/fuori le virgolette, "Gruppo iscrizioni."
- * minuscolo in InvioStanze.js). Usando CONFIG.EMAIL.CAUSALE_PAGAMENTO e
+ * varie occorrenze. Usando CONFIG.EMAIL.CAUSALE_PAGAMENTO e
  * CONFIG.EMAIL.MITTENTE_FIRMA in tutti i punti, questi micro-testi sono ora
  * uniformi ovunque: è l'unico effetto collaterale visibile (puramente
  * testuale/cosmetico) della centralizzazione, nessuna logica è cambiata.
@@ -436,95 +438,6 @@ for (var i = 1; i < data.length; i++) {
   }
 }
 
-/************** ASSEGNAZIONE STANZA **************/
-function sendEmails() {
-  var FN = "sendEmails";
-  var sheet;
-  try {
-    sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(CONFIG.SHEETS.STANZE);
-  } catch (e) {
-    logEvent(CONFIG.LOG.LIVELLI.ERROR, FN, "Impossibile accedere al foglio \"" + CONFIG.SHEETS.STANZE + "\".", e);
-    return;
-  }
-  if (!sheet) {
-    logEvent(CONFIG.LOG.LIVELLI.ERROR, FN, "Foglio \"" + CONFIG.SHEETS.STANZE + "\" non trovato.");
-    return;
-  }
-  if (sheet.getLastRow() <= 1) {
-    logEvent(CONFIG.LOG.LIVELLI.WARNING, FN, "Nessuna riga di assegnazione stanza da processare.");
-    return;
-  }
-
-  var data = sheet.getRange(2, 1, sheet.getLastRow() - 1, 4).getValues(); // Prendi i dati dalle colonne A-D
-  var inviateConSuccesso = 0;
-  var fallite = 0;
-
-  data.forEach(function(row, index) {
-    var lastName = row[CONFIG.STANZE_COLONNE.COGNOME]; // Cognome in colonna A
-    var firstName = row[CONFIG.STANZE_COLONNE.NOME]; // Nome in colonna B
-    var email = row[CONFIG.STANZE_COLONNE.EMAIL]; // Indirizzo email in colonna C
-    var room = row[CONFIG.STANZE_COLONNE.STANZA]; // Stanza assegnata in colonna D
-
-    // Controllo preventivo: dati essenziali presenti prima di costruire/inviare l'email
-    if (!email || !isValidEmail_(email) || !room) {
-      fallite++;
-      logEvent(CONFIG.LOG.LIVELLI.WARNING, FN, "Riga " + (index + 2) + ": email non valida o stanza mancante, invio saltato.");
-      return; // continue nel forEach
-    }
-
-    // Trova i compagni di stanza
-    var roommates = data
-      .filter((r, i) => r[CONFIG.STANZE_COLONNE.STANZA] === room && i !== index) // Filtra per la stessa stanza e escludi la riga corrente
-      .map(r => r[CONFIG.STANZE_COLONNE.NOME] + " " + r[CONFIG.STANZE_COLONNE.COGNOME]); // Crea una lista di compagni di stanza con nome e cognome
-
-    var subject = CONFIG.EMAIL.OGGETTO_ASSEGNAZIONE_STANZA;
-    var message = `
-      <p>Ciao ${firstName} !</p>
-
-      <p>il CUN sta per inziare e quindi è arrivato il momento della tanto agognata divisione in stanze. <\p>
-      <p>Dopo averci lavorato durante il PreCUN sulla base delle tue preferenze e dei vincoli logistici della casa pensiamo di essere giunti ad una quadra. <\p>
-      <p>La stanza che ti abbiamo assegnato è: <strong>${room}</strong>.</p>
-    `;
-
-    if (roommates.length > 0) {
-      message += `
-        <p>Ed avrai il piacere di condividere la tua esperienza con:</p>
-        <ul>
-          ${roommates.map(name => `<li>${name}</li>`).join('')}
-        </ul>
-      `;
-    }
-
-    message += `
-      <p>Con questa mail speriamo di poter ridurre al minimo le incomprensioni. Tuttavia, 
-      ti chiediamo gentilmente di scusarci qualora non riusciremo a comunicarti preventivamente
-      cambiamenti dell'ultimo minuto. Gli imprevisti possono capitare <3. </p>
-`       ;
-    message += "<p>Grazie e a presto,</p>";
-    message += "<p>" + CONFIG.EMAIL.MITTENTE_FIRMA + ".</p>";
-    message += "<br>";
-    message += "<p>Per ulteriori informazioni e gli ultimi aggiornamenti visita il <a href='" + CONFIG.EMAIL.SITO_CUNFEST_URL + "'>sito del CUNFest</a>.</p>";
-
-    // Un fallimento sul singolo destinatario non deve interrompere gli altri invii.
-    try {
-      MailApp.sendEmail({
-        to: email,
-        subject: subject,
-        htmlBody: message
-      });
-      inviateConSuccesso++;
-    } catch (e) {
-      fallite++;
-      logEvent(CONFIG.LOG.LIVELLI.ERROR, FN, "Invio mail assegnazione stanza fallito per \"" + email + "\" (riga " + (index + 2) + ").", e);
-    }
-  });
-
-  logEvent(CONFIG.LOG.LIVELLI.INFO, FN, "Invio assegnazione stanze completato: " + inviateConSuccesso + " inviate, " + fallite + " fallite/saltate.");
-
-  // Resetta il valore di H4 dopo l'invio delle email
-  try {
-    sheet.getRange(CONFIG.CELLE.STANZE_ESITO_INVIO).setValue(CONFIG.STATI.ESITO_STANZE_INVIATE);
-  } catch (e) {
-    logEvent(CONFIG.LOG.LIVELLI.ERROR, FN, "Scrittura esito in " + CONFIG.CELLE.STANZE_ESITO_INVIO + " fallita.", e);
-  }
-}
+// NOTA (Iterazione 3, 2026-07-20): la funzione sendEmails() / invioStanze()
+// per l'assegnazione stanze è stata rimossa perché il tab "Stanze" non è più
+// usato (confermato). Vedi decision log 7_3 per i dettagli.

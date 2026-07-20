@@ -79,3 +79,48 @@ Tutti i valori di configurazione (nomi fogli, celle, indici, stati testuali, col
 
 **Azioni future**
 Valorizzare `CONFIG.ENVIRONMENTS.PROD` (SPREADSHEET_ID, FORM_ID) quando si prepara concretamente il passaggio a produzione.
+
+---
+
+## 2026-07-20 Accesso ai fogli per nome (con fallback) e verifica etichette tariffe
+
+**Contesto**
+I fogli "tariffe" e "comunicazione" venivano aperti solo per posizione (`CONFIG.SHEETS.INDEX_TARIFFE`/`INDEX_COMUNICAZIONE`, cioè "il secondo/terzo foglio"), e le tariffe erano lette per riga fissa senza alcuna verifica: riordinare i tab o spostare una riga nel foglio tariffe rompeva i calcoli in modo silenzioso, senza errore visibile.
+
+**Decisione presa**
+Introdotto `src/repository.gs` come punto unico di accesso ai fogli: `getIscrizioniSheet_`, `getTariffeSheet_`, `getComunicazioneSheet_` cercano il foglio per nome (`CONFIG.SHEETS.TARIFFE`/`COMUNICAZIONE`, nuovi) e ricadono sull'indice di posizione solo come fallback, loggando un avviso. Aggiunta `verificaEtichetteTariffe_()`, eseguita a inizio calcolo prezzi: controlla che ogni riga configurata in `CONFIG.TARIFFE_RIGHE` contenga ancora l'etichetta di testo attesa in colonna A (`CONFIG.TARIFFE_ETICHETTE_ATTESE`). Se una riga risulta spostata, il calcolo prezzi si **interrompe** con un errore chiaro nel Log invece di calcolare un prezzo sbagliato.
+
+**Impatto**
+- Nessun cambiamento nei calcoli quando il foglio è nello stato atteso (verificato contro l'export in `docs/Iscrizioni CUN Fest 2026.xlsx`).
+- I nomi reali dei tab "tariffe"/"comunicazione" nel Google Sheet live non sono stati confermati (l'export xlsx tronca i nomi lunghi): finché `CONFIG.SHEETS.TARIFFE`/`COMUNICAZIONE` non corrispondono esattamente al tab reale, il sistema userà il fallback per indice (comportamento identico a prima) con un avviso nel Log.
+- Comportamento nuovo da testare con attenzione dopo il prossimo `clasp push`: se il foglio tariffe reale differisse anche minimamente dallo snapshot analizzato, il calcolo prezzi potrebbe bloccarsi per la prima volta con errore invece di procedere. Da verificare subito con la checklist di test.
+
+**Azioni future**
+Confermare/allineare i nomi esatti dei tab tariffe/comunicazione in `CONFIG.SHEETS.TARIFFE`/`COMUNICAZIONE` una volta verificati sul Google Sheet reale, per eliminare del tutto la dipendenza dall'ordine dei tab.
+
+---
+
+## 2026-07-20 Riprogettazione del workflow (Iterazione 3): meno errore umano, meno rigenerazioni sincrone
+
+**Contesto**
+Un'analisi funzionale del sistema (vedi `Documentazione_Fase1_Analisi_Sistema_Attuale.md` e le mappe in `3_1`/`3_2`/`3_3`) ha evidenziato: (a) comandi critici affidati a testo libero in cella (facile errore di battitura/maiuscole), (b) l'invio massivo irreversibile innescato da una singola cella senza conferma, (c) stato di un'iscrizione ricostruito a mano incrociando 3 colonne su 2 fogli, (d) ogni submit/edit che rigenera per intero 3 fogli derivati (Ordinato, Pagamento, Tabella Pasti), e (e) il tab "Stanze"/relativa funzione mai confermati come effettivamente in uso.
+
+**Decisione presa**
+Confermato con l'operatore principale: pubblico non tecnico solo in fase iscrizioni, un solo manutentore, schema stabile su più edizioni, nessuna urgenza di supporto AI/agentico a breve termine, tab "Stanze" non più usato, tollerabile un ritardo massimo di 5 minuti sulle sole viste derivate (non sulla mail di conferma). Di conseguenza:
+1. **Rimossa la gestione "Stanze"**: `invioStanze`/`sendEmails()` e le relative chiavi CONFIG eliminate dal codice. Se nell'editor Apps Script risultasse ancora installato un trigger `invioStanze`, va rimosso manualmente dalla UI dei trigger (il codice sorgente non può farlo da solo).
+2. **Celle-comando a testo libero → dropdown**: nuova funzione `configurarValidazioniComandi()` (`setup.gs`) applica Data Validation (menu a discesa, non bloccante) alle colonne "Nuovo invio" (Iscrizioni) e "Pagato" (Pagamento). Da eseguire una tantum dal nuovo menu "Iscrizioni CUN Fest".
+3. **Invio massivo spostato su menu con conferma**: `invioRecovery()` non invia più nulla scrivendo "si" in una cella; l'unico modo per inviare la comunicazione di massa è il menu "Iscrizioni CUN Fest ▸ Invia comunicazione a tutti gli iscritti…" (`avviaInvioComunicazioneDiMassa()`, `setup.gs`), che mostra oggetto e numero destinatari e richiede conferma esplicita prima di chiamare `sendRecoveryEmails()`.
+4. **Stato consolidato**: nuova colonna "Stato Iscrizione" nel foglio Iscrizioni, scritta da `aggiornaStatoIscrizione()` (`sheets.gs`), che riassume in un'unica etichetta leggibile "Mail di conferma inviata" + "Stato nuovo invio" + "Pagato" (letto dal foglio Pagamento). Le colonne granulari restano invariate come dettaglio.
+5. **Rigenerazioni disaccoppiate dalla mail**: `mioTrigger()`/`onEdit()` eseguono subito solo calcolo prezzo + invio mail (nessun ritardo per l'iscritto); Ordinato/Pagamento/Pasti/Stato Iscrizione vengono solo "segnati come da rigenerare" (`segnaViewsDaRigenerare_()`) e aggiornati in blocco da un nuovo trigger a tempo `rigeneraViewsSeNecessario()` (da installare una tantum con `installaTriggerRigenerazionePeriodica()`, ogni 5 minuti). Riduce drasticamente il numero di rigenerazioni complete a parità di iscrizioni/modifiche ravvicinate.
+
+**Impatto**
+- Nessuna modifica al comportamento di calcolo prezzo/invio mail iniziale: restano istantanei come prima.
+- Gli operatori non tecnici continuano a lavorare sullo stesso foglio, ma con dropdown al posto del testo libero sulle celle più a rischio, e con un menu per l'azione più pericolosa (invio a tutti).
+- Ordinato/Pagamento/Pasti possono restare disallineati fino a un massimo di 5 minuti dopo una modifica, oppure essere aggiornati subito dal menu "Rigenera ora…".
+- **Azioni una tantum richieste sull'ambiente di test PRIMA di usare il sistema**: aprire il foglio (per far scattare `onOpen()` e comparire il menu), poi eseguire da menu "Configura dropdown sulle celle comando" e "Installa/verifica trigger periodico 5 min". Ripetere entrambe le azioni anche sull'ambiente di produzione al momento del passaggio.
+- Se un trigger installabile `invioStanze` risultasse ancora presente nell'elenco trigger di Apps Script, rimuoverlo manualmente (il codice associato non esiste più).
+
+**Azioni future**
+- Verificare durante i test che il dropdown "Nuovo invio" non interferisca con il reinvio manuale esistente (il confronto in `onEdit` resta case-insensitive/trim).
+- Valutare, in una futura iterazione, se estendere la colonna "Stato Iscrizione" anche alla vista "Iscrizioni ordinate".
+- Tenere traccia dell'esito della prima settimana con il trigger a 5 minuti attivo, per confermare che il ritardo massimo percepito resti accettabile.

@@ -1,5 +1,7 @@
 # 3.3 – Mappa delle Automazioni e dei Trigger
 
+> ⚠️ **Aggiornamento Iterazione 3 (2026-07-20)**: dopo la riprogettazione (vedi `7_3_decision_log.md`), `invioStanze`/`sendEmails()` sono stati rimossi dal codice; `invioRecovery` non invia più nulla (guida verso il menu "Iscrizioni CUN Fest"); è stato aggiunto un trigger `onOpen` (simple trigger, menu custom) e un nuovo trigger a tempo `rigeneraViewsSeNecessario` (da installare una tantum, ogni 5 minuti) che sostituisce le chiamate sincrone a `creaFoglioOrdinato`/`creaFoglioPagamento`/`generaTabellaPasti` dentro `mioTrigger`/`onEdit`. La mappa sotto descrive lo stato PRIMA di questi cambi; resta valida per la logica di calcolo prezzo/email.
+
 > **Nota sulle fonti**: nel workspace non è presente il file `trigger_attuali.txt` indicato nella traccia; è stato usato il file equivalente `docs/trigger_attuali.docx` (log dei trigger installati in Apps Script), incrociato con il codice sorgente in `src/`.
 
 ---

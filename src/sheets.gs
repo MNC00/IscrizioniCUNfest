@@ -2,10 +2,15 @@
  * SHEETS.gs
  * ---------------------------------------------------------------------------
  * Operazioni di lettura/scrittura sui fogli derivati (Iscrizioni ordinate,
- * Pagamento, Tabella Pasti). Nessuna modifica di comportamento rispetto agli
- * originali "Foglio ordinato.js", "Foglio pagamento.js" e "Tabella pasti.js":
- * solo sostituzione di nomi di foglio, celle fisse e alias colonna con
- * riferimenti a CONFIG.
+ * Pagamento, Tabella Pasti) e sulla colonna di stato consolidata.
+ *
+ * ITERAZIONE 3 (2026-07-20): aggiunta aggiornaStatoIscrizione(), che scrive
+ * un'unica colonna leggibile "Stato Iscrizione" nel foglio Iscrizioni,
+ * combinando le informazioni finora sparse su "Mail di conferma inviata",
+ * "Stato nuovo invio" (foglio Iscrizioni) e "Pagato" (foglio Pagamento). Le
+ * colonne granulari restano invariate come dettaglio/debug; questa è la
+ * colonna che un operatore dovrebbe guardare per sapere "a che punto è"
+ * un'iscrizione senza dover incrociare due fogli a mano.
  * ---------------------------------------------------------------------------
  */
 
@@ -144,11 +149,11 @@ function generaTabellaPasti() {
   var FN = "generaTabellaPasti";
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sheetIscrizioni = ss.getSheetByName(CONFIG.SHEETS.ISCRIZIONI);
-  var sheetInfo = ss.getSheets()[CONFIG.SHEETS.INDEX_TARIFFE]; // Secondo foglio
+  var sheetInfo = getTariffeSheet_(FN);
 
   // Controllo preventivo: i fogli sorgente devono esistere prima di procedere
   if (!sheetIscrizioni || !sheetInfo) {
-    logEvent(CONFIG.LOG.LIVELLI.ERROR, FN, "Foglio \"" + CONFIG.SHEETS.ISCRIZIONI + "\" o foglio tariffe (indice CONFIG.SHEETS.INDEX_TARIFFE) non trovato.");
+    logEvent(CONFIG.LOG.LIVELLI.ERROR, FN, "Foglio \"" + CONFIG.SHEETS.ISCRIZIONI + "\" o foglio tariffe non trovato (vedi CONFIG.SHEETS.TARIFFE).");
     return;
   }
 
@@ -343,5 +348,96 @@ function generaTabellaPasti() {
   }
   } catch (e) {
     logEvent(CONFIG.LOG.LIVELLI.ERROR, FN, "Rigenerazione della tabella pasti (\"" + CONFIG.SHEETS.TABELLA_PASTI + "\") fallita.", e);
+  }
+}
+
+/************** STATO ISCRIZIONE CONSOLIDATO (Iterazione 3, 2026-07-20) **************/
+/**
+ * Scrive nel foglio Iscrizioni un'unica colonna leggibile "Stato Iscrizione",
+ * combinando "Mail di conferma inviata" + "Stato nuovo invio" (foglio
+ * Iscrizioni) e "Pagato" (foglio Pagamento, se già sincronizzato). Non
+ * sostituisce le colonne granulari esistenti (restano per dettaglio/debug):
+ * è pensata come punto unico di lettura per un operatore.
+ *
+ * Va eseguita DOPO creaFoglioPagamento(), così il match Nome+Cognome trova
+ * lo stato "Pagato" già aggiornato. Chiamata da rigeneraViewsSeNecessario()
+ * (regen.gs) nel batch periodico, oltre che manualmente dal menu.
+ */
+function aggiornaStatoIscrizione() {
+  var FN = "aggiornaStatoIscrizione";
+  var ss = getSpreadsheet_();
+  var sh = getIscrizioniSheet_(FN);
+  var shPagamento = ss.getSheetByName(CONFIG.SHEETS.PAGAMENTO);
+
+  if (!sh) {
+    logEvent(CONFIG.LOG.LIVELLI.ERROR, FN, "Foglio iscrizioni non trovato (CONFIG.SHEETS.ISCRIZIONI).");
+    return;
+  }
+  if (sh.getLastRow() <= 1) {
+    logEvent(CONFIG.LOG.LIVELLI.INFO, FN, "Nessuna riga di iscrizione per cui calcolare lo stato.");
+    return;
+  }
+
+  try {
+    var headerMap = buildHeaderIndex(sh);
+    var cNome = getCol(CONFIG.COLONNE.NOME, headerMap);
+    var cCognome = getCol(CONFIG.COLONNE.COGNOME, headerMap);
+    var idxMailConferma = ensureColumn(sh, headerMap, CONFIG.COLONNE.MAIL_CONFERMA_INVIATA);
+    var idxStatoNuovoInvio = ensureColumn(sh, headerMap, CONFIG.COLONNE.STATO_NUOVO_INVIO);
+    var idxStatoIscrizione = ensureColumn(sh, headerMap, CONFIG.COLONNE.STATO_ISCRIZIONE);
+
+    // Mappa "cognome|nome" normalizzati -> pagato sì/no, letta dal foglio Pagamento
+    var pagatiMap = {};
+    if (shPagamento && shPagamento.getLastRow() > 1) {
+      var headerPagamento = buildHeaderIndex(shPagamento);
+      var cCognomePag = getCol(CONFIG.COLONNE.COGNOME, headerPagamento);
+      var cNomePag = getCol(CONFIG.COLONNE.NOME, headerPagamento);
+      var cPagato = getCol(CONFIG.COLONNE.PAGATO, headerPagamento);
+
+      if (cCognomePag >= 0 && cNomePag >= 0 && cPagato >= 0) {
+        var datiPagamento = shPagamento.getRange(2, 1, shPagamento.getLastRow() - 1, shPagamento.getLastColumn()).getValues();
+        datiPagamento.forEach(function(riga) {
+          var chiave = norm(riga[cCognomePag]) + "|" + norm(riga[cNomePag]);
+          var valorePagato = String(riga[cPagato] || "").trim().toLowerCase();
+          pagatiMap[chiave] = (valorePagato === CONFIG.STATI.PAGATO_X);
+        });
+      } else {
+        logEvent(CONFIG.LOG.LIVELLI.WARNING, FN, "Colonne Cognome/Nome/Pagato non trovate nel foglio Pagamento: stato \"Pagato\" non incluso in questo giro.");
+      }
+    }
+
+    var numRows = sh.getLastRow() - 1;
+    var dati = sh.getRange(2, 1, numRows, sh.getLastColumn()).getValues();
+    var output = [];
+
+    for (var i = 0; i < dati.length; i++) {
+      var riga = dati[i];
+      var chiave = norm(riga[cCognome]) + "|" + norm(riga[cNome]);
+      var pagato = pagatiMap[chiave] === true;
+      var mailConferma = String(riga[idxMailConferma] || "").trim();
+      var statoNuovoInvio = String(riga[idxStatoNuovoInvio] || "").trim();
+
+      var label;
+      if (pagato) {
+        label = "Pagata";
+      } else if (statoNuovoInvio === CONFIG.STATI.BLOCCATO_GIA_INVIATA) {
+        label = "Mail con prezzo già inviata (reinvio bloccato)";
+      } else if (mailConferma === CONFIG.STATI.MAIL_INVIATA_CON_PREZZO || mailConferma === CONFIG.STATI.MAIL_PRIMA_SENZA_ORA_CON) {
+        label = "Mail inviata con prezzo, in attesa di pagamento";
+      } else if (mailConferma === CONFIG.STATI.MAIL_INVIATA_SENZA_PREZZO) {
+        label = "Mail inviata, prezzo non ancora disponibile";
+      } else if (mailConferma === "") {
+        label = "Nuova iscrizione, in elaborazione";
+      } else {
+        // Valore non riconosciuto (es. stato legacy "inviata"): riportato as-is invece di nasconderlo.
+        label = mailConferma;
+      }
+
+      output.push([label]);
+    }
+
+    sh.getRange(2, idxStatoIscrizione + 1, output.length, 1).setValues(output);
+  } catch (e) {
+    logEvent(CONFIG.LOG.LIVELLI.ERROR, FN, "Aggiornamento della colonna \"Stato Iscrizione\" fallito.", e);
   }
 }

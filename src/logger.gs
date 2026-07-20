@@ -10,7 +10,7 @@
  *
  * Uso tipico dentro una funzione esistente:
  *   logEvent(CONFIG.LOG.LIVELLI.INFO, "invioMailIscrizione", "Mail di conferma inviata a " + email);
- *   logEvent(CONFIG.LOG.LIVELLI.ERROR, "AutoCalcolatorePrezzi_tuamadre", "Tariffe mancanti nel foglio tariffe", err);
+ *   logEvent(CONFIG.LOG.LIVELLI.ERROR, "calcolaPrezziIscrizioni", "Tariffe mancanti nel foglio tariffe", err);
  * ---------------------------------------------------------------------------
  */
 
