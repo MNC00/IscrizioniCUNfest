@@ -51,7 +51,7 @@ function smistaEvento_(evento) {
     case EVENTI_ISCRIZIONE.RICALCOLA_PREZZO:
       return gestisciRicalcolaPrezzo(evento.idIscrizione);
     case EVENTI_ISCRIZIONE.INVIA_AGGIORNAMENTO:
-      return gestisciInviaAggiornamento(evento.idIscrizione);
+      return gestisciInviaAggiornamento(evento.idIscrizione, !!(evento.dati && evento.dati.confermaReinvio));
     case EVENTI_ISCRIZIONE.PAGAMENTO_REGISTRATO:
       return gestisciPagamentoRegistrato(evento.idIscrizione);
     case EVENTI_ISCRIZIONE.COMUNICAZIONE_MASSIVA:
@@ -153,19 +153,25 @@ function gestisciRicalcolaPrezzo(idIscrizione) {
 }
 
 /**
- * Invia la mail di aggiornamento prezzo (reinvio manuale). Blocca se è già stata inviata
- * una mail "con prezzo" in precedenza, per evitare doppi invii accidentali.
+ * Invia la mail di aggiornamento prezzo (reinvio manuale). Se era già stata inviata una mail
+ * "con prezzo" in precedenza, richiede una conferma esplicita (`confermaReinvio=true`) prima di
+ * reinviare, per evitare invii doppi accidentali senza però impedire i reinvii intenzionali
+ * (es. il prezzo è cambiato una seconda volta, o l'iscritto ha perso la mail precedente).
  * @param {string} idIscrizione
- * @return {{esito: string, errori: string[]}}
+ * @param {boolean} [confermaReinvio] Se true, invia comunque anche se è già stata inviata una mail con prezzo.
+ * @return {{esito: string, errori: string[]}} esito può essere 'OK', 'ERRORE' o 'RICHIEDE_CONFERMA'
+ *   (quest'ultimo quando serve una conferma esplicita per il reinvio e non è stata ancora data).
  */
-function gestisciInviaAggiornamento(idIscrizione) {
+function gestisciInviaAggiornamento(idIscrizione, confermaReinvio) {
   var ctx = costruisciContestoElaborazione_();
   var riga = trovaRigaPerIdIscrizione(ctx.sheetIscrizioni, ctx.indiceIntestazioni, idIscrizione);
   if (riga < 0) return { esito: 'ERRORE', errori: ['Iscrizione non trovata: ' + idIscrizione] };
 
   var iscrizione = leggiIscrizioneDaRiga(ctx.sheetIscrizioni, ctx.indiceIntestazioni, riga);
-  if (iscrizione.statoIscrizione === STATI_ISCRIZIONE.MAIL_INVIATA_CON_PREZZO || iscrizione.statoIscrizione === STATI_ISCRIZIONE.REINVIATA) {
-    return { esito: 'ERRORE', errori: ['Bloccato: è già stata inviata una mail con prezzo per questa iscrizione.'] };
+  var giaInviataConPrezzo = iscrizione.statoIscrizione === STATI_ISCRIZIONE.MAIL_INVIATA_CON_PREZZO ||
+    iscrizione.statoIscrizione === STATI_ISCRIZIONE.REINVIATA;
+  if (giaInviataConPrezzo && !confermaReinvio) {
+    return { esito: 'RICHIEDE_CONFERMA', errori: ['È già stata inviata una mail con prezzo per questa iscrizione: confermare per reinviarla comunque.'] };
   }
   if (!iscrizione.nome || !iscrizione.email) return { esito: 'ERRORE', errori: ['Nome o email mancanti.'] };
 

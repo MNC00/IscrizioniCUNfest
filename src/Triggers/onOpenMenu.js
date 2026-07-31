@@ -67,14 +67,26 @@ function menuRicalcolaPrezzoRigaSelezionata() {
   mostraEsito_('Ricalcola prezzo', risultato);
 }
 
-/** Menu: invia la mail di aggiornamento prezzo per la riga selezionata, con conferma. */
+/** Menu: invia la mail di aggiornamento prezzo per la riga selezionata, con conferma.
+ *  Se era già stata inviata una mail "con prezzo" in precedenza, chiede una SECONDA conferma
+ *  esplicita prima di reinviare (nessun blocco secco: il reinvio resta possibile). */
 function menuInviaAggiornamentoRigaSelezionata() {
   var id = idIscrizioneDaRigaSelezionata_();
   if (!id) return;
   var ui = SpreadsheetApp.getUi();
   var conferma = ui.alert('Invia aggiornamento', 'Confermi l\'invio della mail di aggiornamento prezzo a questo iscritto?', ui.ButtonSet.YES_NO);
   if (conferma !== ui.Button.YES) return;
-  var risultato = gestisciInviaAggiornamento(id);
+
+  var risultato = gestisciInviaAggiornamento(id, false);
+  if (risultato.esito === 'RICHIEDE_CONFERMA') {
+    var confermaReinvio = ui.alert(
+      'Mail già inviata in precedenza',
+      'A questo iscritto è già stata inviata una mail di aggiornamento con il prezzo. Vuoi inviarne comunque un\'altra (es. il prezzo è cambiato di nuovo, o l\'iscritto ha chiesto un secondo invio)?',
+      ui.ButtonSet.YES_NO
+    );
+    if (confermaReinvio !== ui.Button.YES) return;
+    risultato = gestisciInviaAggiornamento(id, true);
+  }
   mostraEsito_('Invia aggiornamento', risultato);
 }
 

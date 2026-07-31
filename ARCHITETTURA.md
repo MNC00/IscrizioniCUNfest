@@ -151,7 +151,8 @@ Ogni ~5 minuti (time-driven)
 
 Azioni manuali (menu "Iscrizioni CUN Fest")
   ├─ Ricalcola prezzo            → EVENTI_ISCRIZIONE.RICALCOLA_PREZZO
-  ├─ Invia aggiornamento prezzo  → EVENTI_ISCRIZIONE.INVIA_AGGIORNAMENTO (con conferma, blocca se già "con prezzo")
+  ├─ Invia aggiornamento prezzo  → EVENTI_ISCRIZIONE.INVIA_AGGIORNAMENTO (con conferma; se già "con prezzo" chiede
+  │                                 una seconda conferma esplicita di reinvio, ma NON blocca: i reinvii restano possibili)
   ├─ Registra pagamento          → EVENTI_ISCRIZIONE.PAGAMENTO_REGISTRATO → stato PAGATA
   └─ Comunicazione a tutti       → gestisciComunicazioneMassiva (con conferma esplicita)
 ```
