@@ -85,6 +85,14 @@ function rigeneraFoglioIscrizioniOrdinate(iscrizioni, sheetSorgente, sheetDestin
  * Aggiorna il tab "Pagamento", una riga per iscrizione, agganciata per ID_ISCRIZIONE
  * (non più per Nome+Cognome: elimina il rischio di unire per errore due omonimi).
  * Il campo "Pagato" non viene mai sovrascritto se la riga esiste già.
+ *
+ * NOTA IMPORTANTE: i valori vengono sempre scritti cercando la colonna per NOME
+ * (mai per posizione fissa), perché l'intestazione di questo tab può provenire da
+ * un foglio "Pagamento" legacy preesistente, in cui ID_ISCRIZIONE è stato aggiunto
+ * in coda dalla migrazione anziché in prima posizione: scrivere per indice fisso
+ * (come in una versione precedente di questa funzione) causava un disallineamento
+ * silenzioso di TUTTE le colonne rispetto all'intestazione reale del foglio.
+ *
  * @param {Object[]} iscrizioni Da leggiTutteIscrizioni().
  * @param {Sheet} sheetPagamento
  */
@@ -103,8 +111,14 @@ function aggiornaFoglioPagamento(iscrizioni, sheetPagamento) {
   }
 
   var indiceIntestazioni = costruisciIndiceIntestazioni(sheetPagamento);
-  var idxIdPagamento = assicuraColonna(sheetPagamento, indiceIntestazioni, COLONNE_PAGAMENTO.ID_ISCRIZIONE);
-  var idxPagato = assicuraColonna(sheetPagamento, indiceIntestazioni, COLONNE_PAGAMENTO.PAGATO);
+  // Risolve l'indice reale di ciascuna colonna cercandola per nome (creandola se assente),
+  // così l'ordine effettivo dell'intestazione del foglio non ha importanza.
+  var idxPerCampo = {};
+  campi.concat([COLONNE_PAGAMENTO.PAGATO]).forEach(function (nomeCampo) {
+    idxPerCampo[nomeCampo] = assicuraColonna(sheetPagamento, indiceIntestazioni, nomeCampo);
+  });
+  var idxIdPagamento = idxPerCampo[COLONNE_PAGAMENTO.ID_ISCRIZIONE];
+  var numeroColonneTotali = sheetPagamento.getLastColumn();
 
   var datiEsistenti = sheetPagamento.getDataRange().getValues();
   // mappa ID_ISCRIZIONE -> numero di riga (1-based) per aggiornamenti O(1) invece di scansione quadratica
@@ -115,18 +129,28 @@ function aggiornaFoglioPagamento(iscrizioni, sheetPagamento) {
   }
 
   iscrizioni.forEach(function (iscrizione) {
-    var nuovaRiga = [
-      iscrizione.idIscrizione, iscrizione.cognome, iscrizione.nome, iscrizione.dataNascita,
-      iscrizione.zona, iscrizione.dataArrivo, iscrizione.pastoArrivo, iscrizione.dataPartenza,
-      iscrizione.pastoPartenza, iscrizione.prezzo
-    ];
+    var valorePerCampo = {};
+    valorePerCampo[COLONNE_PAGAMENTO.ID_ISCRIZIONE] = iscrizione.idIscrizione;
+    valorePerCampo[COLONNE_PAGAMENTO.COGNOME] = iscrizione.cognome;
+    valorePerCampo[COLONNE_PAGAMENTO.NOME] = iscrizione.nome;
+    valorePerCampo[COLONNE_PAGAMENTO.DATA_NASCITA] = iscrizione.dataNascita;
+    valorePerCampo[COLONNE_PAGAMENTO.ZONA] = iscrizione.zona;
+    valorePerCampo[COLONNE_PAGAMENTO.DATA_ARRIVO] = iscrizione.dataArrivo;
+    valorePerCampo[COLONNE_PAGAMENTO.PASTO_ARRIVO] = iscrizione.pastoArrivo;
+    valorePerCampo[COLONNE_PAGAMENTO.DATA_PARTENZA] = iscrizione.dataPartenza;
+    valorePerCampo[COLONNE_PAGAMENTO.PASTO_PARTENZA] = iscrizione.pastoPartenza;
+    valorePerCampo[COLONNE_PAGAMENTO.PREZZO] = iscrizione.prezzo;
 
     var numeroRigaEsistente = iscrizione.idIscrizione ? rigaPerId[iscrizione.idIscrizione] : null;
     if (numeroRigaEsistente) {
-      sheetPagamento.getRange(numeroRigaEsistente, 1, 1, nuovaRiga.length).setValues([nuovaRiga]);
-      // colonna "Pagato" NON toccata: preserva il valore inserito manualmente dall'operatore
+      // Riparte dai valori attuali della riga (preserva "Pagato" e qualunque altra colonna
+      // extra) e sovrascrive solo le colonne note, ciascuna al proprio indice reale.
+      var rigaAggiornata = datiEsistenti[numeroRigaEsistente - 1].slice();
+      campi.forEach(function (nomeCampo) { rigaAggiornata[idxPerCampo[nomeCampo]] = valorePerCampo[nomeCampo]; });
+      sheetPagamento.getRange(numeroRigaEsistente, 1, 1, rigaAggiornata.length).setValues([rigaAggiornata]);
     } else {
-      nuovaRiga.push('');
+      var nuovaRiga = new Array(numeroColonneTotali).fill('');
+      campi.forEach(function (nomeCampo) { nuovaRiga[idxPerCampo[nomeCampo]] = valorePerCampo[nomeCampo]; });
       sheetPagamento.appendRow(nuovaRiga);
       rigaPerId[iscrizione.idIscrizione] = sheetPagamento.getLastRow();
     }
@@ -135,8 +159,8 @@ function aggiornaFoglioPagamento(iscrizioni, sheetPagamento) {
   var numRighe = sheetPagamento.getLastRow();
   var numColonne = sheetPagamento.getLastColumn();
   if (numRighe > 1) {
-    var idxCognomeOut = trovaColonna([COLONNE_PAGAMENTO.COGNOME], indiceIntestazioni) + 1;
-    var idxNomeOut = trovaColonna([COLONNE_PAGAMENTO.NOME], indiceIntestazioni) + 1;
+    var idxCognomeOut = idxPerCampo[COLONNE_PAGAMENTO.COGNOME] + 1;
+    var idxNomeOut = idxPerCampo[COLONNE_PAGAMENTO.NOME] + 1;
     sheetPagamento.getRange(2, 1, numRighe - 1, numColonne)
       .sort([{ column: idxCognomeOut, ascending: true }, { column: idxNomeOut, ascending: true }]);
   }
