@@ -30,6 +30,20 @@ function paragrafoPagamento_() {
   );
 }
 
+/**
+ * Variante storica del paragrafo pagamento usata SOLO nell'email di conferma iniziale
+ * per il ramo "solo pranzo CUN" con prezzo disponibile: nel codice legacy questo blocco
+ * aveva punteggiatura diversa (punto dentro le virgolette) e non includeva la frase
+ * "Nel caso facessi il bonifico...". Preservato esattamente per compatibilità.
+ */
+function paragrafoPagamentoSoloPranzoConfermaConPrezzo_() {
+  return (
+    "<p>È consigliato effettuare il pagamento tramite bonifico su C/C <b>" + INTESTATARIO_CUNFEST + "</b>.</p>" +
+    "<p><b>IBAN:</b> " + IBAN_CUNFEST + "<br>" +
+    "<b>Causale:</b> “Pre CUN e CUN Fest - nome del partecipante e codice fiscale.”</p>"
+  );
+}
+
 function paragrafoChiusura_() {
   return (
     "<p>Per qualsiasi domanda, contattaci e cercheremo di risponderti nel minor tempo possibile.</p>" +
@@ -38,9 +52,41 @@ function paragrafoChiusura_() {
   );
 }
 
+/**
+ * Variante storica del paragrafo di chiusura usata SOLO nell'email di aggiornamento prezzo:
+ * nel codice legacy la formulazione era leggermente diversa da quella dell'email di conferma
+ * (":" invece di "e", "Per info" invece di "Per ulteriori informazioni", nessun <br> iniziale).
+ * Preservato esattamente per compatibilità.
+ */
+function paragrafoChiusuraAggiornamento_() {
+  return (
+    "<p>Per qualsiasi domanda, contattaci: cercheremo di risponderti nel minor tempo possibile.</p>" +
+    "<p>Per info, visita il <a href='" + LINK_SITO_CUNFEST + "'>sito del CUNFest</a>.</p>" +
+    "<p>Grazie e a presto.</p><p>Gruppo Iscrizioni</p>"
+  );
+}
+
 function riepilogoSoggiorno_(contesto) {
   return (
     "<p>Di seguito, il riepilogo della durata della tua permanenza:</p>" +
+    "<ul>" +
+    "<li>Data di arrivo: " + contesto.dataArrivoFormattata + "</li>" +
+    "<li>Pasto di arrivo: " + contesto.pastoArrivo + "</li>" +
+    "<li>Data di partenza: " + contesto.dataPartenzaFormattata + "</li>" +
+    "<li>Pasto di partenza: " + contesto.pastoPartenza + "</li>" +
+    "</ul>"
+  );
+}
+
+/**
+ * Variante storica del riepilogo soggiorno usata SOLO nell'email di aggiornamento prezzo:
+ * formulazione leggermente diversa da quella di conferma ("Di seguito il riepilogo della
+ * tua permanenza" invece di "Di seguito, il riepilogo della durata della tua permanenza").
+ * Preservato esattamente per compatibilità.
+ */
+function riepilogoSoggiornoAggiornamento_(contesto) {
+  return (
+    "<p>Di seguito il riepilogo della tua permanenza:</p>" +
     "<ul>" +
     "<li>Data di arrivo: " + contesto.dataArrivoFormattata + "</li>" +
     "<li>Pasto di arrivo: " + contesto.pastoArrivo + "</li>" +
@@ -74,7 +120,7 @@ function costruisciEmailConferma(contesto) {
          "<p>Abbiamo ricevuto la tua iscrizione al pranzo del CUN Fest " + contesto.anno + " e siamo contenti che parteciperai.</p>" +
          "<p>Il costo dell'esperienza è pari a: €" + contesto.prezzo + ".</p>" +
          "<p>Qualora dovessi saltare dei pasti o per qualsiasi altro aspetto connesso alla questione prezzo, ti saremmo grati se potessi farcelo sapere rispondendo a questa email.</p>" +
-         paragrafoPagamento_() + paragrafoChiusura_())
+         paragrafoPagamentoSoloPranzoConfermaConPrezzo_() + paragrafoChiusura_())
       : ("<p>Ciao " + contesto.nome + "!</p>" +
          "<p>Abbiamo ricevuto la tua iscrizione al pranzo del CUN Fest " + contesto.anno + " e siamo contenti che parteciperai.</p>" +
          "<p>Purtroppo, al momento non ci sono stati comunicati i prezzi dell'esperienza da parte della gestione della casa. Non appena ci saranno novità, sarai informato.</p>" +
@@ -114,17 +160,17 @@ function costruisciEmailAggiornamento(contesto) {
       (contesto.hasPrezzo
         ? "<p>Il costo del <b>pranzo del CUN Fest " + contesto.anno + "</b> è pari a: <b>€" + contesto.prezzo + "</b>.</p>"
         : "<p>Al momento non è stato ancora comunicato il prezzo del pranzo. Ti avviseremo non appena disponibile.</p>") +
-      paragrafoPagamento_() + paragrafoChiusura_();
+      paragrafoPagamento_() + paragrafoChiusuraAggiornamento_();
   } else {
     html =
       "<p>Ciao " + contesto.nome + "!</p>" +
       "<p>Abbiamo ricevuto dalla gestione della casa i prezzi aggiornati.</p>" +
-      riepilogoSoggiorno_(contesto) +
+      riepilogoSoggiornoAggiornamento_(contesto) +
       (contesto.hasPrezzo
         ? ("<p>Il costo dell'esperienza è pari a: <b>€" + contesto.prezzo + "</b>.</p>" +
            "<p>Tieni presente che questi prezzi sono calcolati sulle date indicate nel form. Inoltre, ricordiamo che il prezzo è calcolato fino al pranzo del CUN; per quanto riguarda i giorni/pasti successivi, bisognerà prendere accordi con la casa. Se dovessi saltare dei pasti o notassi incongruenze, rispondi a questa email per aggiornarci.</p>")
         : "<p>Il prezzo aggiornato non è ancora disponibile per la tua permanenza. Ti avviseremo appena possibile.</p>") +
-      paragrafoPagamento_() + paragrafoChiusura_();
+      paragrafoPagamento_() + paragrafoChiusuraAggiornamento_();
   }
 
   return { oggetto: oggetto, html: html, testo: convertiHtmlInTesto_(html) };
