@@ -137,13 +137,27 @@ function calcolaPrezzo(iscrizione, configurazione) {
   });
   if (errori.length) return { prezzo: null, dettagli: dettagli, errori: errori };
 
-  if (!iscrizione || !(iscrizione.dataArrivo instanceof Date) || isNaN(iscrizione.dataArrivo) ||
-      !(iscrizione.dataPartenza instanceof Date) || isNaN(iscrizione.dataPartenza) ||
-      !(iscrizione.dataNascita instanceof Date) || isNaN(iscrizione.dataNascita)) {
-    return { prezzo: null, dettagli: dettagli, errori: ['Date di arrivo/partenza/nascita mancanti o non valide.'] };
+  if (!iscrizione || !(iscrizione.dataNascita instanceof Date) || isNaN(iscrizione.dataNascita)) {
+    return { prezzo: null, dettagli: dettagli, errori: ['Data di nascita mancante o non valida.'] };
   }
 
   var oggi = iscrizione.oggi instanceof Date ? iscrizione.oggi : new Date();
+
+  // NOTA: chi partecipa SOLO al pranzo del CUN compila un form ridotto (il form storico
+  // non richiede/valida arrivo-partenza in questo caso): il ramo va quindi risolto PRIMA
+  // di richiedere data arrivo/partenza, usando solo età e configurazione.
+  if (iscrizione.soloPranzoCun) {
+    var etaSoloPranzo = calcolaEta_(iscrizione.dataNascita, oggi);
+    dettagli.eta = etaSoloPranzo;
+    dettagli.ramo = 'SOLO_PRANZO_CUN';
+    var prezzoSoloPranzo = applicaScontoEta_(configurazione.soloPranzoCun, etaSoloPranzo, configurazione);
+    return { prezzo: Math.ceil(prezzoSoloPranzo), dettagli: dettagli, errori: [] };
+  }
+
+  if (!(iscrizione.dataArrivo instanceof Date) || isNaN(iscrizione.dataArrivo) ||
+      !(iscrizione.dataPartenza instanceof Date) || isNaN(iscrizione.dataPartenza)) {
+    return { prezzo: null, dettagli: dettagli, errori: ['Date di arrivo/partenza mancanti o non valide.'] };
+  }
   var dataInizioCun = configurazione.dataInizioCun;
   var dataFineCun = configurazione.dataFineCun;
   var limiteMeno7Giorni = new Date(dataFineCun);
@@ -161,12 +175,6 @@ function calcolaPrezzo(iscrizione, configurazione) {
   var dataPartenzaSenzaOra = azzeraOra_(dataPartenza);
   var eta = calcolaEta_(iscrizione.dataNascita, oggi);
   dettagli.eta = eta;
-
-  if (iscrizione.soloPranzoCun) {
-    var prezzoSoloPranzo = applicaScontoEta_(configurazione.soloPranzoCun, eta, configurazione);
-    dettagli.ramo = 'SOLO_PRANZO_CUN';
-    return { prezzo: Math.ceil(prezzoSoloPranzo), dettagli: dettagli, errori: [] };
-  }
 
   var numeroNotti = Math.round((dataPartenzaSenzaOra - dataArrivoSenzaOra) / (1000 * 60 * 60 * 24));
 
