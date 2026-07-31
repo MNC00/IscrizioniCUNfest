@@ -250,3 +250,32 @@ può loggare l'anomalia senza bloccare l'elaborazione delle altre iscrizioni.
   consapevole, ma non corrette automaticamente per non alterare prezzi già
   comunicati.
 - Il testo delle email (conferma, aggiornamento) è invariato.
+
+## 8. Solidità del codice (Fase A)
+
+Il codice è pensato per essere modificato **solo** tramite `git` + `clasp
+push` dal repository ufficiale, mai dall'editor Apps Script online:
+
+- **`Infrastructure/Versione.js`**: costante `VERSIONE_SCRIPT` (numero,
+  data, descrizione) da aggiornare ad ogni deploy rilevante, nello stesso
+  commit del cambiamento. Voce di menu "ℹ️ Info versione" per verificare
+  rapidamente che il foglio esegua la versione attesa (un disallineamento
+  rispetto all'ultimo commit noto è un segnale di modifica fatta fuori da
+  git/clasp).
+- **`Orchestration/protezioneFogli.js`**: applica protezioni di tipo "solo
+  avviso" (`setWarningOnly(true)`) ai tab interamente gestiti dallo script
+  (Iscrizioni operativo, Iscrizioni ordinate, Pagamento, Tabella Pasti,
+  Dashboard, Eventi). Un editing manuale mostra un avviso ma non blocca:
+  una protezione "restrittiva" non è praticabile perché bloccherebbe anche
+  le azioni da menu, che vengono eseguite con i permessi di chi le lancia
+  (non del proprietario dello script). Voce di menu "🔒 Applica protezioni
+  fogli", idempotente (rimuove e ricrea le proprie protezioni, riconosciute
+  tramite `TAG_PROTEZIONE_SCRIPT`, senza toccare protezioni create a mano
+  da altri).
+- **Permessi Google**: per uno script "bound" (agganciato al foglio),
+  Google non permette di separare l'accesso in modifica al foglio da quello
+  al codice dello script — chiunque sia Editor del foglio può aprire
+  l'editor Apps Script. Una separazione reale richiederebbe di convertire
+  il progetto in uno script standalone (valutato ma non adottato per ora,
+  vedi discussione nel changelog/commit di Fase A): i due meccanismi sopra
+  (versione + protezioni) sono la mitigazione scelta nel frattempo.

@@ -25,6 +25,8 @@ function onOpen() {
     .addItem('Migra dati legacy (una tantum)', 'menuMigraIscrizioniLegacy')
     .addItem('Apri dettaglio iscrizione…', 'menuApriSidebarDettaglio')
     .addSeparator()
+    .addItem('🔒 Applica protezioni fogli', 'menuApplicaProtezioniFogli')
+    .addItem('ℹ️ Info versione', 'menuMostraInfoVersione')
     .addItem('❓ Guida rapida', 'menuApriGuidaRapida')
     .addToUi();
 

@@ -116,6 +116,22 @@ sistema.
 ### Apri dettaglio iscrizione…
 Vedi [sezione 4](#4-il-pannello-dettaglio-iscrizione).
 
+### 🔒 Applica protezioni fogli
+Protegge i tab gestiti interamente dallo script (Iscrizioni operativo,
+Iscrizioni ordinate, Pagamento, Tabella Pasti, Dashboard, Eventi) contro
+modifiche manuali accidentali: chi prova a scrivere a mano in una cella di
+questi tab vede un avviso (ma può comunque procedere se sa cosa sta
+facendo). Le azioni da menu continuano a funzionare normalmente. Va
+rilanciata solo se qualcuno segnala che l'avviso non compare più o dopo la
+creazione di un nuovo tab.
+
+### ℹ️ Info versione
+Mostra numero di versione e data dell'ultimo aggiornamento del codice
+installato. Utile per verificare, insieme a chi si occupa della parte
+tecnica, che il foglio stia effettivamente eseguendo l'ultima versione
+pubblicata (il codice va sempre aggiornato solo tramite git, mai
+modificando l'editor Apps Script a mano).
+
 ### ❓ Guida rapida
 Apre una finestra con un riepilogo veloce degli stati e delle azioni più
 comuni: utile per un ripasso senza dover riaprire questo manuale.
