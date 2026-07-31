@@ -10,9 +10,9 @@
  * (o almeno ad ogni release), tipicamente nello stesso commit del cambiamento.
  */
 var VERSIONE_SCRIPT = Object.freeze({
-  NUMERO: '1.2.0',
+  NUMERO: '1.3.0',
   DATA: '2026-07-31', // aggiornare alla data dell'ultimo deploy rilevante
-  DESCRIZIONE: 'Test deploy automatico via GitHub Actions (CI/CD)'
+  DESCRIZIONE: 'Fase A (a5): validazioni a tendina su celle libere (Pagato, Stato Comunicazioni)'
 });
 
 /**

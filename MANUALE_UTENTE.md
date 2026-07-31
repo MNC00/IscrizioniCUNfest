@@ -116,6 +116,14 @@ sistema.
 ### Apri dettaglio iscrizione…
 Vedi [sezione 4](#4-il-pannello-dettaglio-iscrizione).
 
+### ✅ Applica validazioni celle
+Aggiunge una tendina con i valori ammessi sulle poche celle "libere" rimaste
+(es. colonna "Pagato" nel tab Pagamento, colonna "STATO" nel tab
+Comunicazioni), per ridurre il rischio di errori di battitura. Scrivere un
+valore diverso mostra solo un avviso, non blocca: va rilanciata solo se
+qualcuno segnala che la tendina non compare più o dopo la creazione di un
+nuovo tab.
+
 ### 🔒 Applica protezioni fogli
 Protegge i tab gestiti interamente dallo script (Iscrizioni operativo,
 Iscrizioni ordinate, Pagamento, Tabella Pasti, Dashboard, Eventi) contro

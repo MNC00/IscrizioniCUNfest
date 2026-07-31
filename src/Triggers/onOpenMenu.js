@@ -26,6 +26,7 @@ function onOpen() {
     .addItem('Apri dettaglio iscrizione…', 'menuApriSidebarDettaglio')
     .addSeparator()
     .addItem('🔒 Applica protezioni fogli', 'menuApplicaProtezioniFogli')
+    .addItem('✅ Applica validazioni celle', 'menuApplicaValidazioniCelle')
     .addItem('ℹ️ Info versione', 'menuMostraInfoVersione')
     .addItem('❓ Guida rapida', 'menuApriGuidaRapida')
     .addToUi();
