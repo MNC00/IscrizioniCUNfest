@@ -80,7 +80,7 @@ attesa degli argomenti).
 | `Triggers/onFormSubmit.js` | `mioTriggerV2(e)`: assegna ID, imposta stato NUOVA, accoda `FORM_SUBMITTED`, elabora subito (con retry via time-driver in caso di errore). |
 | `Triggers/onOpenMenu.js` | `onOpen()`: crea il menu **"Iscrizioni CUN Fest"** con tutte le azioni manuali (ricalcola prezzo, invia aggiornamento, registra pagamento, comunicazione a tutti con conferma, rigenera viste, esporta log, migrazione dati). |
 | `Triggers/timeDriver.js` | `rigeneraVisteSeNecessarioTrigger()` (da agganciare a un trigger a tempo ogni 5 minuti tramite `installaTriggerPeriodico()`): rigenera le viste e riprocessa eventi rimasti in coda. |
-| `UI/sidebar.js` + `UI/sidebar.html` | Sidebar opzionale con dettaglio iscrizione + ultimi eventi di log. |
+| `UI/sidebarController.js` + `UI/sidebar.html` | Sidebar opzionale con dettaglio iscrizione + ultimi eventi di log. |
 
 ## 3. Dati: nuovi tab e colonne
 

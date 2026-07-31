@@ -1,5 +1,5 @@
 /**
- * UI/sidebar.js
+ * UI/sidebarController.js
  * -----------------------------------------------------------------------
  * Sidebar opzionale per gli operatori: mostra il dettaglio di un'iscrizione
  * (dati principali, stato, ultimi eventi di log) e permette di lanciare le
