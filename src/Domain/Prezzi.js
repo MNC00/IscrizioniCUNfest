@@ -133,12 +133,12 @@ function calcolaPrezzo(iscrizione, configurazione) {
   }
   var campiTariffariObbligatori = ['generale', 'soloPranzoCun', 'dataInizioCun', 'dataFineCun'];
   campiTariffariObbligatori.forEach(function (campo) {
-    if (!configurazione[campo]) errori.push('Configurazione incompleta: manca "' + campo + '".');
+    if (!configurazione[campo]) errori.push('Configurazione tariffe incompleta (manca "' + campo + '"). Aprire il tab "Configurazione" e verificare che tutte le chiavi tariffarie abbiano un VALORE.');
   });
   if (errori.length) return { prezzo: null, dettagli: dettagli, errori: errori };
 
   if (!iscrizione || !(iscrizione.dataNascita instanceof Date) || isNaN(iscrizione.dataNascita)) {
-    return { prezzo: null, dettagli: dettagli, errori: ['Data di nascita mancante o non valida.'] };
+    return { prezzo: null, dettagli: dettagli, errori: ['Data di nascita mancante o non valida in questa iscrizione: controllare la colonna "Data di nascita" nel tab Iscrizioni CUN Fest.'] };
   }
 
   var oggi = iscrizione.oggi instanceof Date ? iscrizione.oggi : new Date();
@@ -156,7 +156,7 @@ function calcolaPrezzo(iscrizione, configurazione) {
 
   if (!(iscrizione.dataArrivo instanceof Date) || isNaN(iscrizione.dataArrivo) ||
       !(iscrizione.dataPartenza instanceof Date) || isNaN(iscrizione.dataPartenza)) {
-    return { prezzo: null, dettagli: dettagli, errori: ['Date di arrivo/partenza mancanti o non valide.'] };
+    return { prezzo: null, dettagli: dettagli, errori: ['Date di arrivo/partenza mancanti o non valide: controllare le colonne "Data di arrivo" e "Data di partenza" per questa iscrizione.'] };
   }
   var dataInizioCun = configurazione.dataInizioCun;
   var dataFineCun = configurazione.dataFineCun;
@@ -186,7 +186,7 @@ function calcolaPrezzo(iscrizione, configurazione) {
     : (Object.prototype.hasOwnProperty.call(PESO_PASTO_PARTENZA, pastoPartenzaKey) ? PESO_PASTO_PARTENZA[pastoPartenzaKey] : undefined);
 
   if (pastoInizio === undefined || pastoPartenza === undefined) {
-    errori.push('Pasto di arrivo/partenza non riconosciuto ("' + iscrizione.pastoArrivo + '" / "' + iscrizione.pastoPartenza + '").');
+    errori.push('Pasto di arrivo/partenza non riconosciuto ("' + iscrizione.pastoArrivo + '" / "' + iscrizione.pastoPartenza + '"): controllare che siano scritti come nel form (es. "Colazione", "Pranzo", "Cena").');
     return { prezzo: null, dettagli: dettagli, errori: errori };
   }
 
@@ -225,7 +225,7 @@ function calcolaPrezzo(iscrizione, configurazione) {
   }
 
   if (prezzoFinale === undefined) {
-    errori.push('Impossibile determinare il prezzo con i dati forniti.');
+    errori.push('Impossibile calcolare il prezzo con i dati forniti (date o combinazione pasti non gestita): verificare le date di arrivo/partenza e la configurazione date CUN.');
     return { prezzo: null, dettagli: dettagli, errori: errori };
   }
 

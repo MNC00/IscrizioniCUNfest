@@ -99,11 +99,11 @@ function formattaDataItaliana_(data) {
 function gestisciFormSubmitted(idIscrizione) {
   var ctx = costruisciContestoElaborazione_();
   var riga = trovaRigaPerIdIscrizione(ctx.sheetIscrizioni, ctx.indiceIntestazioni, idIscrizione);
-  if (riga < 0) return { esito: 'ERRORE', errori: ['Iscrizione non trovata: ' + idIscrizione] };
+  if (riga < 0) return { esito: 'ERRORE', errori: ['Iscrizione non trovata (ID_ISCRIZIONE=' + idIscrizione + '): verificare che la riga esista ancora nel tab Iscrizioni CUN Fest e non sia stata cancellata.'] };
 
   var iscrizione = leggiIscrizioneDaRiga(ctx.sheetIscrizioni, ctx.indiceIntestazioni, riga);
   if (!iscrizione.nome || !iscrizione.email) {
-    return { esito: 'ERRORE', errori: ['Nome o email mancanti: nessuna mail inviata.'] };
+    return { esito: 'ERRORE', errori: ['Nome o email mancanti per questa iscrizione: nessuna mail è stata inviata. Controllare le colonne Nome/Cognome/Email nella riga corrispondente.'] };
   }
 
   var esitoPrezzo = calcolaPrezzo(iscrizione, ctx.configurazione);
@@ -140,7 +140,7 @@ function gestisciFormSubmitted(idIscrizione) {
 function gestisciRicalcolaPrezzo(idIscrizione) {
   var ctx = costruisciContestoElaborazione_();
   var riga = trovaRigaPerIdIscrizione(ctx.sheetIscrizioni, ctx.indiceIntestazioni, idIscrizione);
-  if (riga < 0) return { esito: 'ERRORE', errori: ['Iscrizione non trovata: ' + idIscrizione] };
+  if (riga < 0) return { esito: 'ERRORE', errori: ['Iscrizione non trovata (ID_ISCRIZIONE=' + idIscrizione + '): verificare che la riga esista ancora nel tab Iscrizioni CUN Fest e non sia stata cancellata.'] };
 
   var iscrizione = leggiIscrizioneDaRiga(ctx.sheetIscrizioni, ctx.indiceIntestazioni, riga);
   var esitoPrezzo = calcolaPrezzo(iscrizione, ctx.configurazione);
@@ -165,7 +165,7 @@ function gestisciRicalcolaPrezzo(idIscrizione) {
 function gestisciInviaAggiornamento(idIscrizione, confermaReinvio) {
   var ctx = costruisciContestoElaborazione_();
   var riga = trovaRigaPerIdIscrizione(ctx.sheetIscrizioni, ctx.indiceIntestazioni, idIscrizione);
-  if (riga < 0) return { esito: 'ERRORE', errori: ['Iscrizione non trovata: ' + idIscrizione] };
+  if (riga < 0) return { esito: 'ERRORE', errori: ['Iscrizione non trovata (ID_ISCRIZIONE=' + idIscrizione + '): verificare che la riga esista ancora nel tab Iscrizioni CUN Fest e non sia stata cancellata.'] };
 
   var iscrizione = leggiIscrizioneDaRiga(ctx.sheetIscrizioni, ctx.indiceIntestazioni, riga);
   var giaInviataConPrezzo = iscrizione.statoIscrizione === STATI_ISCRIZIONE.MAIL_INVIATA_CON_PREZZO ||
@@ -173,7 +173,7 @@ function gestisciInviaAggiornamento(idIscrizione, confermaReinvio) {
   if (giaInviataConPrezzo && !confermaReinvio) {
     return { esito: 'RICHIEDE_CONFERMA', errori: ['È già stata inviata una mail con prezzo per questa iscrizione: confermare per reinviarla comunque.'] };
   }
-  if (!iscrizione.nome || !iscrizione.email) return { esito: 'ERRORE', errori: ['Nome o email mancanti.'] };
+  if (!iscrizione.nome || !iscrizione.email) return { esito: 'ERRORE', errori: ['Nome o email mancanti per questa iscrizione: nessuna mail è stata inviata. Controllare le colonne Nome/Cognome/Email.'] };
 
   var esitoPrezzo = calcolaPrezzo(iscrizione, ctx.configurazione);
   var hasPrezzo = esitoPrezzo.prezzo !== null;
@@ -203,7 +203,7 @@ function gestisciInviaAggiornamento(idIscrizione, confermaReinvio) {
 function gestisciPagamentoRegistrato(idIscrizione) {
   var ctx = costruisciContestoElaborazione_();
   var riga = trovaRigaPerIdIscrizione(ctx.sheetIscrizioni, ctx.indiceIntestazioni, idIscrizione);
-  if (riga < 0) return { esito: 'ERRORE', errori: ['Iscrizione non trovata: ' + idIscrizione] };
+  if (riga < 0) return { esito: 'ERRORE', errori: ['Iscrizione non trovata (ID_ISCRIZIONE=' + idIscrizione + '): verificare che la riga esista ancora nel tab Iscrizioni CUN Fest e non sia stata cancellata.'] };
 
   var iscrizione = leggiIscrizioneDaRiga(ctx.sheetIscrizioni, ctx.indiceIntestazioni, riga);
   var transizione = prossimoStatoIscrizione(iscrizione.statoIscrizione, EVENTI_ISCRIZIONE.PAGAMENTO_REGISTRATO);
@@ -219,7 +219,7 @@ function gestisciPagamentoRegistrato(idIscrizione) {
 function gestisciComunicazioneMassiva(idComm) {
   var sheetComunicazioni = getFoglioObbligatorio(FOGLI.COMUNICAZIONI);
   var righe = leggiComunicazioniDaInviare().filter(function (r) { return r.idComm === idComm; });
-  if (!righe.length) return { esito: 'ERRORE', errori: ['Comunicazione non trovata o già inviata: ' + idComm] };
+  if (!righe.length) return { esito: 'ERRORE', errori: ['Comunicazione non trovata o già inviata (ID_COMM=' + idComm + '): aggiungere una nuova riga con OGGETTO e TESTO nel tab Comunicazioni.'] };
   var comunicazione = righe[0];
 
   var configurazione = leggiConfigurazioneCalcoloPrezzi(leggiMappaConfigurazione());
