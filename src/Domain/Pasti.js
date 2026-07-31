@@ -3,7 +3,12 @@
  * -----------------------------------------------------------------------
  * Calcolo del fabbisogno pasti/pernottamenti per giorno, a partire dall'elenco
  * delle iscrizioni. Logica di dominio PURA (nessun accesso a Sheets).
- * Riproduce fedelmente i conteggi storici di `generaTabellaPasti`.
+ * Riproduce fedelmente i conteggi storici di `generaTabellaPasti`, con UNA
+ * differenza voluta (miglioramento rispetto al legacy, richiesto in verifica
+ * live): il totale "Solo Pranzo CUN" viene sommato automaticamente alla
+ * colonna Pranzo del giorno di `dataFineCun` (il giorno del pranzo del CUN),
+ * cosi' la cucina ha gia' il numero corretto senza calcoli manuali. Nel
+ * legacy questo totale restava in un riquadro separato, da sommare a mano.
  */
 
 /**
@@ -133,6 +138,11 @@ function calcolaPastiPerGiorno(iscrizioni, configurazione) {
   var tabellaGiorni = [];
   var giornoCorrente = new Date(dataInizioTabella);
   var chiaveUltimoGiorno = formattaChiaveData_(dataFineTabella);
+  // Il "pranzo del CUN" (a cui partecipano anche i "solo pranzo CUN", senza
+  // date di arrivo/partenza compilate) si tiene il giorno di dataFineCun:
+  // il loro totale va sommato alla colonna Pranzo di quel giorno, cosi' la
+  // cucina ha gia' il numero corretto senza doverlo sommare a mano.
+  var chiaveGiornoPranzoCun = formattaChiaveData_(azzeraOra_(dataFineCun));
 
   while (giornoCorrente <= dataFineTabella) {
     var chiaveData = formattaChiaveData_(giornoCorrente);
@@ -146,6 +156,10 @@ function calcolaPastiPerGiorno(iscrizioni, configurazione) {
       pranzo += extraDormireUltimoGiorno + pastiLunedi[1];
       cena += extraDormireUltimoGiorno + pastiLunedi[2];
       dormire += extraDormireUltimoGiorno;
+    }
+
+    if (chiaveData === chiaveGiornoPranzoCun) {
+      pranzo += soloPranzoCunTotale;
     }
 
     tabellaGiorni.push({ data: new Date(giornoCorrente), colazione: colazione, pranzo: pranzo, cena: cena, dormire: dormire });

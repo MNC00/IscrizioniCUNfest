@@ -56,7 +56,23 @@ function normalizzaTabellaDominio(risultatoDominio) {
   return JSON.parse(JSON.stringify(semplificato));
 }
 
-test('calcolaPastiPerGiorno (Domain) == calcolaPastiLegacyPuro (legacy) su 200 gruppi casuali di iscrizioni', () => {
+/**
+ * Adatta il risultato del porting legacy "puro" al MIGLIORAMENTO intenzionale
+ * introdotto nel Domain (richiesto in verifica live, non presente nel legacy):
+ * il totale "Solo Pranzo CUN" viene sommato alla colonna Pranzo del giorno di
+ * dataFineCun. Usato per confrontare Domain e legacy conoscendo questa unica
+ * differenza voluta, invece di pretendere un'uguaglianza cieca.
+ */
+function applicaMiglioramentoSoloPranzo(risultatoLegacy, dataFineCun) {
+  const chiaveGiornoPranzoCun = new Date(dataFineCun.getFullYear(), dataFineCun.getMonth(), dataFineCun.getDate())
+    .toISOString().slice(0, 10);
+  const adattato = JSON.parse(JSON.stringify(risultatoLegacy));
+  const giorno = adattato.tabellaGiorni.find((g) => g.data === chiaveGiornoPranzoCun);
+  if (giorno) giorno.pranzo += adattato.soloPranzoCunTotale;
+  return adattato;
+}
+
+test('calcolaPastiPerGiorno (Domain) == calcolaPastiLegacyPuro (legacy) + miglioramento solo-pranzo-CUN, su 200 gruppi casuali di iscrizioni', () => {
   const rand = creaRandom(7);
 
   for (let gruppo = 0; gruppo < 200; gruppo++) {
@@ -70,7 +86,7 @@ test('calcolaPastiPerGiorno (Domain) == calcolaPastiLegacyPuro (legacy) su 200 g
     }));
 
     const risultatoNuovo = normalizzaTabellaDominio(contesto.calcolaPastiPerGiorno(iscrizioni, CONFIGURAZIONE));
-    const risultatoLegacy = calcolaPastiLegacyPuro(legacyInput, CONFIGURAZIONE);
+    const risultatoLegacy = applicaMiglioramentoSoloPranzo(calcolaPastiLegacyPuro(legacyInput, CONFIGURAZIONE), DATA_FINE_CUN);
 
     assert.deepEqual(
       risultatoNuovo, risultatoLegacy,
@@ -88,7 +104,7 @@ test('calcolaPastiPerGiorno: arrivo e partenza nello stesso giorno con "Prima di
   const legacyInput = [{ ...iscrizioni[0], soloPranzoCun: 'No' }];
 
   const risultatoNuovo = normalizzaTabellaDominio(contesto.calcolaPastiPerGiorno(iscrizioni, CONFIGURAZIONE));
-  const risultatoLegacy = calcolaPastiLegacyPuro(legacyInput, CONFIGURAZIONE);
+  const risultatoLegacy = applicaMiglioramentoSoloPranzo(calcolaPastiLegacyPuro(legacyInput, CONFIGURAZIONE), DATA_FINE_CUN);
   assert.deepEqual(risultatoNuovo, risultatoLegacy);
 });
 
@@ -131,8 +147,31 @@ test('calcolaPastiPerGiorno: "solo pranzo CUN" SENZA date (come nel form reale) 
   const legacyInput = iscrizioni.map((r) => ({ ...r, soloPranzoCun: r.soloPranzoCun ? 'Si' : 'No' }));
 
   const risultatoNuovo = normalizzaTabellaDominio(contesto.calcolaPastiPerGiorno(iscrizioni, CONFIGURAZIONE));
-  const risultatoLegacy = calcolaPastiLegacyPuro(legacyInput, CONFIGURAZIONE);
+  const risultatoLegacy = applicaMiglioramentoSoloPranzo(calcolaPastiLegacyPuro(legacyInput, CONFIGURAZIONE), DATA_FINE_CUN);
 
   assert.equal(risultatoNuovo.soloPranzoCunTotale, 1, 'il "solo pranzo CUN" senza date deve comunque essere contato');
   assert.deepEqual(risultatoNuovo, risultatoLegacy);
+});
+
+test('calcolaPastiPerGiorno: il totale "solo pranzo CUN" viene sommato alla colonna Pranzo del giorno di dataFineCun (miglioramento rispetto al legacy, richiesto in verifica live)', () => {
+  const iscrizioni = [
+    { // 3 persone "solo pranzo CUN", senza date compilate
+      dataArrivo: null, pastoArrivo: '', dataPartenza: null, pastoPartenza: '', soloPranzoCun: true, parliamoLunedi: '', nome: 'A', cognome: 'A'
+    },
+    { dataArrivo: null, pastoArrivo: '', dataPartenza: null, pastoPartenza: '', soloPranzoCun: true, parliamoLunedi: '', nome: 'B', cognome: 'B' },
+    { dataArrivo: null, pastoArrivo: '', dataPartenza: null, pastoPartenza: '', soloPranzoCun: true, parliamoLunedi: '', nome: 'C', cognome: 'C' },
+    { // 1 iscrizione "normale" che pranza anche lei il giorno di dataFineCun (arrivo il giorno prima, colazione)
+      dataArrivo: new Date(2026, 7, 10), pastoArrivo: 'Colazione', dataPartenza: DATA_FINE_CUN, pastoPartenza: 'Cena',
+      soloPranzoCun: false, parliamoLunedi: '', nome: 'Mario', cognome: 'Rossi'
+    }
+  ];
+
+  const risultato = contesto.calcolaPastiPerGiorno(iscrizioni, CONFIGURAZIONE);
+  assert.equal(risultato.soloPranzoCunTotale, 3);
+
+  const chiaveDataFineCun = DATA_FINE_CUN.toISOString().slice(0, 10);
+  const giornoDataFineCun = Array.from(risultato.tabellaGiorni).find((g) => g.data.toISOString().slice(0, 10) === chiaveDataFineCun);
+  assert.ok(giornoDataFineCun, 'il giorno di dataFineCun deve esistere nella tabella');
+  // Mario pranza quel giorno (arrivo il giorno prima con colazione => pranzo/cena inclusi) + 3 "solo pranzo CUN" = 4
+  assert.equal(giornoDataFineCun.pranzo, 4);
 });
