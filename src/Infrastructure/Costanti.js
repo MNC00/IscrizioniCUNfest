@@ -13,7 +13,7 @@ var FOGLI = Object.freeze({
   PAGAMENTO: 'Pagamento',
   TABELLA_PASTI: 'Tabella Pasti',
   CONFIGURAZIONE: 'Configurazione',
-  CONFIGURAZIONE_LEGACY: 'Tabella Costi e Istruzioni Fog',
+  CONFIGURAZIONE_LEGACY: 'Tabella Costi e Istruzioni Foglio',
   EVENTI: 'Eventi',
   COMUNICAZIONI: 'Comunicazioni'
 });
