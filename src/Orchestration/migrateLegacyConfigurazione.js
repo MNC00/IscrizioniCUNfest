@@ -24,9 +24,9 @@
  */
 function migraConfigurazioneLegacy(sovrascrivi) {
   var ss = getSpreadsheetAttivo();
-  var sheetLegacy = ss.getSheetByName(FOGLI.CONFIGURAZIONE_LEGACY);
+  var sheetLegacy = trovaFoglioTollerante_(ss, FOGLI.CONFIGURAZIONE_LEGACY);
   if (!sheetLegacy) {
-    return { eseguita: false, motivo: 'Tab legacy "' + FOGLI.CONFIGURAZIONE_LEGACY + '" non trovato.' };
+    return { eseguita: false, motivo: 'Tab legacy "' + FOGLI.CONFIGURAZIONE_LEGACY + '" non trovato. Nomi tab presenti: ' + ss.getSheets().map(function (s) { return s.getName(); }).join(', ') };
   }
 
   var sheetNuovo = getOCreaFoglio(FOGLI.CONFIGURAZIONE);
@@ -78,6 +78,27 @@ function migraConfigurazioneLegacy(sovrascrivi) {
   for (var col = 1; col <= 3; col++) sheetNuovo.autoResizeColumn(col);
 
   return { eseguita: true, motivo: null };
+}
+
+/**
+ * Cerca un tab per nome tollerando differenze di spazi multipli/maiuscole
+ * (es. "Tabella Costi  e Istruzioni Foglio" vs "Tabella Costi e Istruzioni Foglio").
+ * Evita che un piccolo refuso nel nome del tab rompa silenziosamente la migrazione.
+ * @private
+ * @param {Spreadsheet} ss
+ * @param {string} nomeAtteso
+ * @return {Sheet|null}
+ */
+function trovaFoglioTollerante_(ss, nomeAtteso) {
+  var esatto = ss.getSheetByName(nomeAtteso);
+  if (esatto) return esatto;
+  var normalizza = function (s) { return (s + '').toLowerCase().trim().replace(/\s+/g, ' '); };
+  var atteso = normalizza(nomeAtteso);
+  var fogli = ss.getSheets();
+  for (var i = 0; i < fogli.length; i++) {
+    if (normalizza(fogli[i].getName()) === atteso) return fogli[i];
+  }
+  return null;
 }
 
 /**
