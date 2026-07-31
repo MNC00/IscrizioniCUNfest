@@ -20,12 +20,15 @@ function onOpen() {
     .addSeparator()
     .addItem('Rigenera viste ora (Ordinato/Pagamento/Pasti/Dashboard)', 'menuRigeneraVisteOra')
     .addItem('Esporta log eventi (ultimi 200)', 'menuEsportaLogEventi')
+    .addItem('🔍 Verifica struttura fogli', 'menuVerificaStrutturaFogli')
     .addSeparator()
     .addItem('Migra dati legacy (una tantum)', 'menuMigraIscrizioniLegacy')
     .addItem('Apri dettaglio iscrizione…', 'menuApriSidebarDettaglio')
     .addSeparator()
     .addItem('❓ Guida rapida', 'menuApriGuidaRapida')
     .addToUi();
+
+  segnalaProblemiStrutturaSePresenti_();
 }
 
 /** @return {?string} ID_ISCRIZIONE della riga attualmente selezionata nel tab Iscrizioni, o null. */
