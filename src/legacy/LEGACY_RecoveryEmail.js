@@ -1,3 +1,11 @@
+/**
+ * LEGACY - DISABILITATO
+ * Questo file NON e' piu' collegato a nessun trigger. Conservato solo per riferimento storico/rollback.
+ * Il nuovo flusso vive in Domain/, Infrastructure/, Orchestration/, Triggers/. Vedi ARCHITETTURA.md.
+ * L'intero contenuto originale e' racchiuso in un commento a blocco per evitare collisioni di nomi
+ * di funzione globali (es. onEdit, mioTrigger, norm, getCol...) con il nuovo codice.
+ */
+/*
 function sendRecoveryEmails() {
   // Ottieni il foglio attivo
   var sh = SpreadsheetApp.getActiveSpreadsheet().getSheets()[0];
@@ -69,3 +77,4 @@ for (var i = 1; i < data.length; i++) {
   foglioMail.getRange(2,cTesto +1).setValue("");
   foglioMail.getRange(2,cOggetto +1).setValue("");
 }
+*/

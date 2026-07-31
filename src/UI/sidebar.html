@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <style>
+    body { font-family: Arial, sans-serif; font-size: 13px; padding: 8px; }
+    h3 { margin-bottom: 4px; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
+    td { padding: 2px 4px; vertical-align: top; }
+    td.label { font-weight: bold; width: 40%; }
+    .evento { border-bottom: 1px solid #ddd; padding: 4px 0; }
+    .esito-ok { color: #2e7d32; }
+    .esito-errore { color: #c62828; }
+    #vuoto { color: #777; }
+  </style>
+</head>
+<body>
+  <div id="vuoto">Seleziona una riga nel tab "Iscrizioni CUN Fest" e riapri questo pannello.</div>
+  <div id="contenuto" style="display:none">
+    <h3>Iscrizione</h3>
+    <table id="tabellaIscrizione"></table>
+    <h3>Ultimi eventi</h3>
+    <div id="listaEventi"></div>
+  </div>
+
+  <script>
+    google.script.run.withSuccessHandler(function (dati) {
+      if (!dati) return;
+      document.getElementById('vuoto').style.display = 'none';
+      document.getElementById('contenuto').style.display = 'block';
+
+      var campi = [
+        ['ID iscrizione', dati.iscrizione.idIscrizione],
+        ['Nome', dati.iscrizione.nome + ' ' + dati.iscrizione.cognome],
+        ['Email', dati.iscrizione.email],
+        ['Stato', dati.iscrizione.statoIscrizione],
+        ['Prezzo', dati.iscrizione.prezzo]
+      ];
+      var tabella = document.getElementById('tabellaIscrizione');
+      campi.forEach(function (c) {
+        var riga = document.createElement('tr');
+        riga.innerHTML = '<td class="label">' + c[0] + '</td><td>' + (c[1] || '-') + '</td>';
+        tabella.appendChild(riga);
+      });
+
+      var lista = document.getElementById('listaEventi');
+      if (!dati.eventi.length) {
+        lista.innerHTML = '<div id="vuoto">Nessun evento registrato.</div>';
+      }
+      dati.eventi.forEach(function (ev) {
+        var div = document.createElement('div');
+        div.className = 'evento';
+        var classeEsito = ev.esito === 'OK' ? 'esito-ok' : 'esito-errore';
+        div.innerHTML =
+          '<div>' + ev.timestamp + ' — <b>' + ev.tipoEvento + '</b> (' + ev.stato + ')</div>' +
+          '<div class="' + classeEsito + '">' + (ev.esito || '') + (ev.errori ? ': ' + ev.errori : '') + '</div>';
+        lista.appendChild(div);
+      });
+    }).caricaDatiSidebar();
+  </script>
+</body>
+</html>

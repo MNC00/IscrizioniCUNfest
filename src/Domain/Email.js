@@ -1,0 +1,146 @@
+/**
+ * Domain/Email.js
+ * -----------------------------------------------------------------------
+ * Costruzione pura dei contenuti delle email (nessun invio qui: quello è
+ * responsabilità di Infrastructure/EmailSender.js). Ogni funzione restituisce
+ * {oggetto, html, testo} pronto per essere passato all'infrastruttura.
+ */
+
+var LINK_SITO_CUNFEST = 'https://sites.google.com/view/pgstimm/cunfest?authuser=0';
+var IBAN_CUNFEST = 'IT87W0200859280000003853446';
+var INTESTATARIO_CUNFEST = 'SCUOLA APOSTOLICA BERTONI';
+
+/** Rimuove i tag HTML per ottenere una versione testuale approssimativa del corpo email. */
+function convertiHtmlInTesto_(html) {
+  return html
+    .replace(/<\/(p|li|ul|br)>/gi, '\n')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
+function paragrafoPagamento_() {
+  return (
+    "<p>È consigliato effettuare il pagamento tramite bonifico su C/C <b>" + INTESTATARIO_CUNFEST + "</b>.</p>" +
+    "<p><b>IBAN:</b> " + IBAN_CUNFEST + "<br>" +
+    "<b>Causale:</b> “Pre CUN e CUN Fest - nome del partecipante e codice fiscale”.</p>" +
+    "<p>Nel caso facessi il bonifico, rispondi a questa mail allegando la ricevuta.</p>"
+  );
+}
+
+function paragrafoChiusura_() {
+  return (
+    "<p>Per qualsiasi domanda, contattaci e cercheremo di risponderti nel minor tempo possibile.</p>" +
+    "<p>Per ulteriori informazioni, visita il <a href='" + LINK_SITO_CUNFEST + "'>sito del CUNFest</a>.</p>" +
+    "<br><p>Grazie e a presto.</p><p>Gruppo Iscrizioni</p>"
+  );
+}
+
+function riepilogoSoggiorno_(contesto) {
+  return (
+    "<p>Di seguito, il riepilogo della durata della tua permanenza:</p>" +
+    "<ul>" +
+    "<li>Data di arrivo: " + contesto.dataArrivoFormattata + "</li>" +
+    "<li>Pasto di arrivo: " + contesto.pastoArrivo + "</li>" +
+    "<li>Data di partenza: " + contesto.dataPartenzaFormattata + "</li>" +
+    "<li>Pasto di partenza: " + contesto.pastoPartenza + "</li>" +
+    "</ul>"
+  );
+}
+
+/**
+ * Costruisce l'email di conferma iscrizione (primo invio, dal form).
+ * @param {Object} contesto
+ * @param {string} contesto.nome
+ * @param {number} contesto.anno
+ * @param {boolean} contesto.hasPrezzo
+ * @param {boolean} contesto.isSoloPranzo
+ * @param {string} contesto.dataArrivoFormattata
+ * @param {string} contesto.pastoArrivo
+ * @param {string} contesto.dataPartenzaFormattata
+ * @param {string} contesto.pastoPartenza
+ * @param {number} [contesto.prezzo]
+ * @return {{oggetto: string, html: string, testo: string}}
+ */
+function costruisciEmailConferma(contesto) {
+  var oggetto = 'Conferma Iscrizione CUN Fest';
+  var html;
+
+  if (contesto.isSoloPranzo) {
+    html = contesto.hasPrezzo
+      ? ("<p>Ciao " + contesto.nome + "!</p>" +
+         "<p>Abbiamo ricevuto la tua iscrizione al pranzo del CUN Fest " + contesto.anno + " e siamo contenti che parteciperai.</p>" +
+         "<p>Il costo dell'esperienza è pari a: €" + contesto.prezzo + ".</p>" +
+         "<p>Qualora dovessi saltare dei pasti o per qualsiasi altro aspetto connesso alla questione prezzo, ti saremmo grati se potessi farcelo sapere rispondendo a questa email.</p>" +
+         paragrafoPagamento_() + paragrafoChiusura_())
+      : ("<p>Ciao " + contesto.nome + "!</p>" +
+         "<p>Abbiamo ricevuto la tua iscrizione al pranzo del CUN Fest " + contesto.anno + " e siamo contenti che parteciperai.</p>" +
+         "<p>Purtroppo, al momento non ci sono stati comunicati i prezzi dell'esperienza da parte della gestione della casa. Non appena ci saranno novità, sarai informato.</p>" +
+         paragrafoChiusura_());
+  } else {
+    html = contesto.hasPrezzo
+      ? ("<p>Ciao " + contesto.nome + "!</p>" +
+         "<p>Abbiamo ricevuto la tua iscrizione al CUN Fest " + contesto.anno + " e siamo contenti che parteciperai.</p>" +
+         riepilogoSoggiorno_(contesto) +
+         "<p>Il costo dell'esperienza è pari a: €" + contesto.prezzo + ".</p>" +
+         "<p>Tieni presente che questi prezzi sono calcolati sulla base delle date fornite nella compilazione del form. Inoltre, ricordiamo che il prezzo è calcolato fino al pranzo del CUN; per quanto riguarda i giorni/pasti successivi, bisognerà prendere accordi con la casa. Qualora dovessi saltare dei pasti o per qualsiasi altro aspetto connesso alla questione prezzo, ti saremmo grati se potessi farcelo sapere rispondendo a questa email.</p>" +
+         paragrafoPagamento_() + paragrafoChiusura_())
+      : ("<p>Ciao " + contesto.nome + "!</p>" +
+         "<p>Abbiamo ricevuto la tua iscrizione al CUN Fest " + contesto.anno + " e siamo contenti che parteciperai.</p>" +
+         riepilogoSoggiorno_(contesto) +
+         "<p>Purtroppo, al momento non ci sono stati comunicati i prezzi dell'esperienza da parte della gestione della casa.</p>" +
+         "<p>Non appena ci saranno novità, sarai informato.</p>" +
+         paragrafoChiusura_());
+  }
+
+  return { oggetto: oggetto, html: html, testo: convertiHtmlInTesto_(html) };
+}
+
+/**
+ * Costruisce l'email di aggiornamento prezzo (reinvio manuale).
+ * @param {Object} contesto Stessa forma di costruisciEmailConferma.
+ * @return {{oggetto: string, html: string, testo: string}}
+ */
+function costruisciEmailAggiornamento(contesto) {
+  var oggetto = 'Aggiornamento prezzi CUN Fest';
+  var html;
+
+  if (contesto.isSoloPranzo) {
+    html =
+      "<p>Ciao " + contesto.nome + "!</p>" +
+      "<p>Abbiamo ricevuto dalla gestione della casa i prezzi aggiornati.</p>" +
+      (contesto.hasPrezzo
+        ? "<p>Il costo del <b>pranzo del CUN Fest " + contesto.anno + "</b> è pari a: <b>€" + contesto.prezzo + "</b>.</p>"
+        : "<p>Al momento non è stato ancora comunicato il prezzo del pranzo. Ti avviseremo non appena disponibile.</p>") +
+      paragrafoPagamento_() + paragrafoChiusura_();
+  } else {
+    html =
+      "<p>Ciao " + contesto.nome + "!</p>" +
+      "<p>Abbiamo ricevuto dalla gestione della casa i prezzi aggiornati.</p>" +
+      riepilogoSoggiorno_(contesto) +
+      (contesto.hasPrezzo
+        ? ("<p>Il costo dell'esperienza è pari a: <b>€" + contesto.prezzo + "</b>.</p>" +
+           "<p>Tieni presente che questi prezzi sono calcolati sulle date indicate nel form. Inoltre, ricordiamo che il prezzo è calcolato fino al pranzo del CUN; per quanto riguarda i giorni/pasti successivi, bisognerà prendere accordi con la casa. Se dovessi saltare dei pasti o notassi incongruenze, rispondi a questa email per aggiornarci.</p>")
+        : "<p>Il prezzo aggiornato non è ancora disponibile per la tua permanenza. Ti avviseremo appena possibile.</p>") +
+      paragrafoPagamento_() + paragrafoChiusura_();
+  }
+
+  return { oggetto: oggetto, html: html, testo: convertiHtmlInTesto_(html) };
+}
+
+/**
+ * Costruisce un'email per una comunicazione di massa personalizzata solo nel saluto.
+ * @param {string} nome
+ * @param {string} oggetto
+ * @param {string} testoLibero Testo libero scritto dall'operatore nel foglio "Comunicazioni".
+ * @return {{oggetto: string, html: string, testo: string}}
+ */
+function costruisciEmailMassa(nome, oggetto, testoLibero) {
+  var html =
+    "<p>Ciao " + nome + "!</p>" +
+    "<p>" + testoLibero + "</p>" +
+    "<p>A prestissimo!<br>Gruppo Iscrizioni.</p>";
+  return { oggetto: oggetto, html: html, testo: convertiHtmlInTesto_(html) };
+}

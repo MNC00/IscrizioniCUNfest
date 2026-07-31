@@ -1,4 +1,12 @@
-/************** FUNZIONI DI SUPPORTO **************/
+/**
+ * LEGACY - DISABILITATO
+ * Questo file NON e' piu' collegato a nessun trigger. Conservato solo per riferimento storico/rollback.
+ * Il nuovo flusso vive in Domain/, Infrastructure/, Orchestration/, Triggers/. Vedi ARCHITETTURA.md.
+ * L'intero contenuto originale e' racchiuso in un commento a blocco per evitare collisioni di nomi
+ * di funzione globali (es. onEdit, mioTrigger, norm, getCol...) con il nuovo codice.
+ */
+/*
+/************** FUNZIONI DI SUPPORTO **************_/
 
 function readConfigMap(sheet){
   var vals = sheet.getDataRange().getValues();
@@ -59,7 +67,7 @@ function trovaDateCUN(sheet) {
 }
 
 
-/************** CALCOLATORE PREZZI **************/
+/************** CALCOLATORE PREZZI **************_/
 function AutoCalcolatorePrezzi_tuamadre() {
   
   // Apri il foglio di calcolo associato al modulo Google.
@@ -351,3 +359,5 @@ console.log('DATA CUN lette da config:', data_inizio_cun, limiteDataFine);
 
   }
 }
+
+*/

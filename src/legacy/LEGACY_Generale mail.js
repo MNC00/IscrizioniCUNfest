@@ -1,4 +1,12 @@
-/************** UTILITIES COMUNI **************/
+/**
+ * LEGACY - DISABILITATO
+ * Questo file NON e' piu' collegato a nessun trigger. Conservato solo per riferimento storico/rollback.
+ * Il nuovo flusso vive in Domain/, Infrastructure/, Orchestration/, Triggers/. Vedi ARCHITETTURA.md.
+ * L'intero contenuto originale e' racchiuso in un commento a blocco per evitare collisioni di nomi
+ * di funzione globali (es. onEdit, mioTrigger, norm, getCol...) con il nuovo codice.
+ */
+/*
+/************** UTILITIES COMUNI **************_/
 function norm(s) {
   if (s == null) return "";
   return s.toString()
@@ -26,7 +34,7 @@ function getCol(aliases, headerMap) {
   return -1;
 }
 
-/* se l'intestazione non esiste, crea una nuova colonna in coda con quel titolo e ritorna l'indice 0-based */
+/* se l'intestazione non esiste, crea una nuova colonna in coda con quel titolo e ritorna l'indice 0-based *_/
 function ensureColumn(sheet, headerMap, title) {
   var key = norm(title);
   if (Object.prototype.hasOwnProperty.call(headerMap, key)) return headerMap[key];
@@ -63,7 +71,7 @@ function getAnnoAttuale() {
   return new Date().getFullYear();
 }
 
-/************** BUILDER HTML: INVIO INIZIALE **************/
+/************** BUILDER HTML: INVIO INIZIALE **************_/
 function buildEmailContentIniziale(opts) {
   var { nome, anno, hasPrezzo, isSoloPranzo, dataArrivo, pastoArrivo, dataPartenza, pastoPartenza, prezzo } = opts;
   var oggetto = "Conferma Iscrizione CUN Fest";
@@ -136,7 +144,7 @@ function buildEmailContentIniziale(opts) {
   return { oggetto, corpo, stato };
 }
 
-/************** BUILDER HTML: NUOVO INVIO CON PREZZO **************/
+/************** BUILDER HTML: NUOVO INVIO CON PREZZO **************_/
 function buildEmailContentAggiornamento(opts) {
   var {
     nome, anno, hasPrezzo, isSoloPranzo,
@@ -193,7 +201,7 @@ function buildEmailContentAggiornamento(opts) {
   return { oggetto, corpo, stato };
 }
 
-/************** FUNZIONE 1: invio da MODULO **************/
+/************** FUNZIONE 1: invio da MODULO **************_/
 function invioMailIscrizione() {
 var ss = SpreadsheetApp.getActiveSpreadsheet();
 var sh = ss.getSheets()[0];
@@ -241,7 +249,7 @@ sh.getRange(rowIdx, idxMailConferma +1).setValue(payload.stato);
 sh.getRange(rowIdx, idxNuovoInvio +1).setValue("");
 }
 
-/************** FUNZIONE 2: invio da MODIFICA **************/
+/************** FUNZIONE 2: invio da MODIFICA **************_/
 function invioMailAggiornamento(riga) {
 var ss = SpreadsheetApp.getActiveSpreadsheet();
 var sh = ss.getSheets()[0];
@@ -294,3 +302,5 @@ sh.getRange(rowIdx, idxStatoNuovoInvio +1).setValue(payload.stato);
 sh.getRange(rowIdx, idxNuovoInvio +1).setValue("già fatto");
 sh.getRange(rowIdx, idxMailConferma +1).setValue("prima senza, ora con");
 }
+
+*/

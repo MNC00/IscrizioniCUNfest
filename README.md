@@ -2,8 +2,16 @@
 
 Questo progetto gestisce le automazioni per le iscrizioni al festival, interfacciando Google Forms, Google Sheets e Apps Script.
 
+## Architettura (Iterazione 4)
+Il codice è organizzato in 4 layer: **Domain** (logica pura), **Infrastructure**
+(accesso a Sheets/Gmail), **Orchestration** (coordina Domain+Infrastructure,
+gestisce la coda eventi) e **Triggers/UI** (entry point sottili). Il codice
+storico è conservato, disattivato, in `src/legacy/`. Vedi **[ARCHITETTURA.md](ARCHITETTURA.md)**
+per la descrizione completa dei layer, il flusso di un'iscrizione, la
+macchina a stati e la procedura di migrazione.
+
 ## Struttura del progetto
-- `/src`: Contiene tutto il codice Apps Script.
+- `/src`: Contiene tutto il codice Apps Script (`Domain/`, `Infrastructure/`, `Orchestration/`, `Triggers/`, `UI/`, `legacy/`).
 - `/docs`: Contiene la documentazione tecnica e le analisi.
 
 ## Regole di sviluppo
@@ -11,9 +19,13 @@ Questo progetto gestisce le automazioni per le iscrizioni al festival, interfacc
 2. Sviluppa in locale usando VS Code.
 3. Fai il push delle modifiche tramite Clasp (`clasp push`).
 
-## Setup una tantum dopo il primo `clasp push` (Iterazione 3, 2026-07-20)
-Dopo aver pushato questa versione (sia in ambiente di test sia, in seguito, in produzione), aprire il Google Sheet e usare il nuovo menu **"Iscrizioni CUN Fest"** per eseguire, una sola volta:
-1. **"Configura dropdown sulle celle comando"** — trasforma le colonne "Nuovo invio" e "Pagato" in menu a discesa.
-2. **"Installa/verifica trigger periodico 5 min"** — installa il trigger a tempo che aggiorna Ordinato/Pagamento/Pasti/Stato Iscrizione ogni 5 minuti (necessario perché queste rigenerazioni non sono più sincrone ad ogni submit/edit).
+## Setup una tantum dopo il primo `clasp push` (Iterazione 4)
+Dopo aver pushato questa versione, dall'editor Apps Script (non dal foglio) eseguire, una sola volta:
+1. `migraConfigurazioneLegacy()` — popola il nuovo tab "Configurazione" (CHIAVE/VALORE/DESCRIZIONE) dal vecchio tab tariffe.
+2. `installaTriggerPeriodico()` — installa il trigger a tempo (ogni 5 minuti) che rigenera le viste derivate e riprocessa la coda eventi.
 
-Se il menu non compare subito, ricaricare la pagina del foglio (il menu è creato da `onOpen()`). Dettagli e motivazioni in `docs/7_3_decision_log.md`.
+Poi, dal Google Sheet, aprire il menu **"Iscrizioni CUN Fest"** ed eseguire **"Migra dati legacy (una tantum)"** per assegnare `ID_ISCRIZIONE`/`STATO_ISCRIZIONE` alle iscrizioni esistenti.
+
+Infine, dal pannello Trigger di Apps Script: rimuovere i vecchi trigger installabili (`mioTrigger`, `onEdit`, `invioRecovery`, `coloraPagati`) e aggiungere il trigger installabile `mioTriggerV2` sull'evento "Al momento dell'invio del modulo".
+
+Se il menu non compare subito, ricaricare la pagina del foglio (il menu è creato da `onOpen()`). Dettagli completi in **[ARCHITETTURA.md](ARCHITETTURA.md)**.

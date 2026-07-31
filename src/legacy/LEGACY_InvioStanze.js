@@ -1,3 +1,11 @@
+/**
+ * LEGACY - DISABILITATO
+ * Questo file NON e' piu' collegato a nessun trigger. Conservato solo per riferimento storico/rollback.
+ * Il nuovo flusso vive in Domain/, Infrastructure/, Orchestration/, Triggers/. Vedi ARCHITETTURA.md.
+ * L'intero contenuto originale e' racchiuso in un commento a blocco per evitare collisioni di nomi
+ * di funzione globali (es. onEdit, mioTrigger, norm, getCol...) con il nuovo codice.
+ */
+/*
 function invioStanze(e) {
   var sheet = e.source.getActiveSheet();
   var range = e.range;
@@ -61,3 +69,5 @@ function sendEmails() {
   // Resetta il valore di H4 dopo l'invio delle email
   sheet.getRange('J4').setValue('Mail inviate con successo');
 }
+
+*/
