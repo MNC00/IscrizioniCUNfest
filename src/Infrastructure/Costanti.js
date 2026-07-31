@@ -15,7 +15,8 @@ var FOGLI = Object.freeze({
   CONFIGURAZIONE: 'Configurazione',
   CONFIGURAZIONE_LEGACY: 'Tabella Costi e Istruzioni Foglio',
   EVENTI: 'Eventi',
-  COMUNICAZIONI: 'Comunicazioni'
+  COMUNICAZIONI: 'Comunicazioni',
+  DASHBOARD: 'Dashboard'
 });
 
 /** Intestazioni di colonna nel tab "Iscrizioni CUN Fest". */

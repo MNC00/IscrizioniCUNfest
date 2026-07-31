@@ -34,6 +34,8 @@ function rigeneraViste() {
       Logger.log('rigeneraViste: date CUN non configurate, tabella pasti non rigenerata.');
     }
 
+    aggiornaDashboardStato(iscrizioni);
+
     return { ok: true, errore: null };
   } catch (e) {
     var messaggio = e && e.message ? e.message : String(e);
@@ -41,6 +43,19 @@ function rigeneraViste() {
     registraEventoImmediato('', 'RIGENERA_VISTE', {}, 'ERRORE', messaggio);
     return { ok: false, errore: messaggio };
   }
+}
+
+/**
+ * Aggiorna il tab "Dashboard" con i conteggi per stato e gli ultimi eventi in errore.
+ * Isolata in una propria funzione (con il proprio try/catch a monte in rigeneraViste)
+ * così un problema nella dashboard non impedisce l'aggiornamento delle altre viste.
+ * @param {Array} iscrizioni Elenco già letto da leggiTutteIscrizioni.
+ */
+function aggiornaDashboardStato(iscrizioni) {
+  var eventiRecenti = leggiEventiRecenti(200);
+  var dati = calcolaDashboardStato(iscrizioni, eventiRecenti);
+  var sheetDashboard = getOCreaFoglio(FOGLI.DASHBOARD);
+  scriviDashboardStato(dati, sheetDashboard);
 }
 
 /**

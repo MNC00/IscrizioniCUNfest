@@ -12,51 +12,152 @@
     .esito-ok { color: #2e7d32; }
     .esito-errore { color: #c62828; }
     #vuoto { color: #777; }
+    .azioni { margin: 10px 0 16px 0; display: flex; gap: 6px; flex-wrap: wrap; }
+    button { font-size: 12px; padding: 6px 10px; cursor: pointer; }
+    button:disabled { cursor: not-allowed; opacity: 0.6; }
+    #messaggioAzione { margin: 8px 0; padding: 6px 8px; border-radius: 4px; display: none; }
+    #messaggioAzione.ok { background: #e6f4ea; color: #1e4620; display: block; }
+    #messaggioAzione.errore { background: #fce8e6; color: #611a15; display: block; }
+    #messaggioAzione.info { background: #fff8e1; color: #7a5b00; display: block; }
   </style>
 </head>
 <body>
-  <div id="vuoto">Seleziona una riga nel tab "Iscrizioni CUN Fest" e riapri questo pannello.</div>
+  <div id="vuoto">Caricamento…</div>
   <div id="contenuto" style="display:none">
     <h3>Iscrizione</h3>
     <table id="tabellaIscrizione"></table>
+
+    <div class="azioni">
+      <button id="btnRicalcola">Ricalcola prezzo</button>
+      <button id="btnInvia">Invia aggiornamento</button>
+      <button id="btnAggiorna">🔄 Aggiorna</button>
+    </div>
+    <div id="messaggioAzione"></div>
+
     <h3>Ultimi eventi</h3>
     <div id="listaEventi"></div>
   </div>
 
   <script>
-    google.script.run.withSuccessHandler(function (dati) {
-      if (!dati) return;
-      document.getElementById('vuoto').style.display = 'none';
-      document.getElementById('contenuto').style.display = 'block';
+    function mostraMessaggio(testo, tipo) {
+      var el = document.getElementById('messaggioAzione');
+      el.textContent = testo;
+      el.className = tipo; // 'ok' | 'errore' | 'info'
+    }
 
-      var campi = [
-        ['ID iscrizione', dati.iscrizione.idIscrizione],
-        ['Nome', dati.iscrizione.nome + ' ' + dati.iscrizione.cognome],
-        ['Email', dati.iscrizione.email],
-        ['Stato', dati.iscrizione.statoIscrizione],
-        ['Prezzo', dati.iscrizione.prezzo]
-      ];
-      var tabella = document.getElementById('tabellaIscrizione');
-      campi.forEach(function (c) {
-        var riga = document.createElement('tr');
-        riga.innerHTML = '<td class="label">' + c[0] + '</td><td>' + (c[1] || '-') + '</td>';
-        tabella.appendChild(riga);
-      });
+    function nascondiMessaggio() {
+      var el = document.getElementById('messaggioAzione');
+      el.className = '';
+      el.textContent = '';
+    }
 
-      var lista = document.getElementById('listaEventi');
-      if (!dati.eventi.length) {
-        lista.innerHTML = '<div id="vuoto">Nessun evento registrato.</div>';
+    function impostaPulsantiAbilitati(abilitati) {
+      document.getElementById('btnRicalcola').disabled = !abilitati;
+      document.getElementById('btnInvia').disabled = !abilitati;
+    }
+
+    function caricaDati() {
+      nascondiMessaggio();
+      google.script.run.withSuccessHandler(function (dati) {
+        if (!dati || !dati.ok) {
+          document.getElementById('contenuto').style.display = 'none';
+          var vuoto = document.getElementById('vuoto');
+          vuoto.style.display = 'block';
+          vuoto.textContent = (dati && dati.motivo) || 'Seleziona una riga nel tab "Iscrizioni CUN Fest" e riapri questo pannello.';
+          return;
+        }
+        document.getElementById('vuoto').style.display = 'none';
+        document.getElementById('contenuto').style.display = 'block';
+        impostaPulsantiAbilitati(true);
+
+        var campi = [
+          ['ID iscrizione', dati.iscrizione.idIscrizione],
+          ['Nome', dati.iscrizione.nome + ' ' + dati.iscrizione.cognome],
+          ['Email', dati.iscrizione.email],
+          ['Stato', dati.iscrizione.statoIscrizione],
+          ['Prezzo', dati.iscrizione.prezzo]
+        ];
+        var tabella = document.getElementById('tabellaIscrizione');
+        tabella.innerHTML = '';
+        campi.forEach(function (c) {
+          var riga = document.createElement('tr');
+          riga.innerHTML = '<td class="label">' + c[0] + '</td><td>' + (c[1] || '-') + '</td>';
+          tabella.appendChild(riga);
+        });
+
+        var lista = document.getElementById('listaEventi');
+        lista.innerHTML = '';
+        if (!dati.eventi.length) {
+          lista.innerHTML = '<div id="vuoto">Nessun evento registrato.</div>';
+        }
+        dati.eventi.forEach(function (ev) {
+          var div = document.createElement('div');
+          div.className = 'evento';
+          var classeEsito = ev.esito === 'OK' ? 'esito-ok' : 'esito-errore';
+          div.innerHTML =
+            '<div>' + ev.timestamp + ' — <b>' + ev.tipoEvento + '</b> (' + ev.stato + ')</div>' +
+            '<div class="' + classeEsito + '">' + (ev.esito || '') + (ev.errori ? ': ' + ev.errori : '') + '</div>';
+          lista.appendChild(div);
+        });
+      }).withFailureHandler(function (errore) {
+        mostraMessaggio('Errore imprevisto: ' + errore.message, 'errore');
+      }).caricaDatiSidebar();
+    }
+
+    function gestisciRisultatoAzione(risultato, messaggioSuccesso) {
+      impostaPulsantiAbilitati(true);
+      if (!risultato) {
+        mostraMessaggio('Nessuna risposta dal server.', 'errore');
+        return;
       }
-      dati.eventi.forEach(function (ev) {
-        var div = document.createElement('div');
-        div.className = 'evento';
-        var classeEsito = ev.esito === 'OK' ? 'esito-ok' : 'esito-errore';
-        div.innerHTML =
-          '<div>' + ev.timestamp + ' — <b>' + ev.tipoEvento + '</b> (' + ev.stato + ')</div>' +
-          '<div class="' + classeEsito + '">' + (ev.esito || '') + (ev.errori ? ': ' + ev.errori : '') + '</div>';
-        lista.appendChild(div);
-      });
-    }).caricaDatiSidebar();
+      if (risultato.esito === 'OK') {
+        mostraMessaggio(messaggioSuccesso, 'ok');
+        caricaDati();
+      } else {
+        mostraMessaggio((risultato.errori || ['Operazione non riuscita.']).join(' '), 'errore');
+      }
+    }
+
+    document.getElementById('btnRicalcola').addEventListener('click', function () {
+      impostaPulsantiAbilitati(false);
+      nascondiMessaggio();
+      google.script.run.withSuccessHandler(function (risultato) {
+        gestisciRisultatoAzione(risultato, 'Prezzo ricalcolato.');
+      }).withFailureHandler(function (errore) {
+        impostaPulsantiAbilitati(true);
+        mostraMessaggio('Errore imprevisto: ' + errore.message, 'errore');
+      }).sidebarRicalcolaPrezzo();
+    });
+
+    document.getElementById('btnInvia').addEventListener('click', function () {
+      if (!window.confirm('Confermi l\'invio della mail di aggiornamento prezzo a questo iscritto?')) return;
+      impostaPulsantiAbilitati(false);
+      nascondiMessaggio();
+      google.script.run.withSuccessHandler(function (risultato) {
+        if (risultato && risultato.esito === 'RICHIEDE_CONFERMA') {
+          if (window.confirm('A questo iscritto è già stata inviata una mail di aggiornamento con il prezzo. Vuoi inviarne comunque un\'altra?')) {
+            google.script.run.withSuccessHandler(function (risultatoFinale) {
+              gestisciRisultatoAzione(risultatoFinale, 'Mail di aggiornamento inviata.');
+            }).withFailureHandler(function (errore) {
+              impostaPulsantiAbilitati(true);
+              mostraMessaggio('Errore imprevisto: ' + errore.message, 'errore');
+            }).sidebarInviaAggiornamento(true);
+          } else {
+            impostaPulsantiAbilitati(true);
+            mostraMessaggio('Invio annullato.', 'info');
+          }
+          return;
+        }
+        gestisciRisultatoAzione(risultato, 'Mail di aggiornamento inviata.');
+      }).withFailureHandler(function (errore) {
+        impostaPulsantiAbilitati(true);
+        mostraMessaggio('Errore imprevisto: ' + errore.message, 'errore');
+      }).sidebarInviaAggiornamento(false);
+    });
+
+    document.getElementById('btnAggiorna').addEventListener('click', caricaDati);
+
+    caricaDati();
   </script>
 </body>
 </html>

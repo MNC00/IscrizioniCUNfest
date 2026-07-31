@@ -12,19 +12,25 @@ function apriSidebarDettaglioIscrizione() {
     .setTitle('Dettaglio iscrizione');
   SpreadsheetApp.getUi().showSidebar(html);
 }
-
 /**
  * Funzione richiamata dal client (google.script.run) per popolare la sidebar.
- * @return {?{iscrizione: Object, eventi: Array}}
+ * @return {{ok: boolean, motivo: ?string, iscrizione: ?Object, eventi: ?Array}}
  */
 function caricaDatiSidebar() {
   var sheet = SpreadsheetApp.getActiveSheet();
-  if (sheet.getName() !== FOGLI.ISCRIZIONI) return null;
+  if (sheet.getName() !== FOGLI.ISCRIZIONI) {
+    return { ok: false, motivo: 'Seleziona una riga nel tab "' + FOGLI.ISCRIZIONI + '" e riapri questo pannello.' };
+  }
   var riga = sheet.getActiveCell().getRow();
-  if (riga <= 1) return null;
+  if (riga <= 1) {
+    return { ok: false, motivo: 'Seleziona una riga con dei dati (non l\'intestazione).' };
+  }
 
   var indiceIntestazioni = costruisciIndiceIntestazioni(sheet);
   var iscrizione = leggiIscrizioneDaRiga(sheet, indiceIntestazioni, riga);
+  if (!iscrizione.idIscrizione) {
+    return { ok: false, motivo: 'Questa riga non ha un ID_ISCRIZIONE. Serve eseguire prima "Migra dati legacy" (chiedi a chi segue la parte tecnica).' };
+  }
 
   var sheetEventi = getOCreaFoglioEventi();
   var indiceEventi = costruisciIndiceIntestazioni(sheetEventi);
@@ -48,6 +54,7 @@ function caricaDatiSidebar() {
   }
 
   return {
+    ok: true,
     iscrizione: {
       idIscrizione: iscrizione.idIscrizione,
       nome: iscrizione.nome,
@@ -58,4 +65,28 @@ function caricaDatiSidebar() {
     },
     eventi: eventi
   };
+}
+
+/**
+ * Azione "Ricalcola prezzo" lanciata dal pulsante nella sidebar, sulla riga attualmente selezionata.
+ * @return {{esito: string, errori: string[]}}
+ */
+function sidebarRicalcolaPrezzo() {
+  var id = idIscrizioneDaRigaSelezionata_();
+  if (!id) return { esito: 'ERRORE', errori: ['Seleziona prima una riga valida nel tab "' + FOGLI.ISCRIZIONI + '".'] };
+  return gestisciRicalcolaPrezzo(id);
+}
+
+/**
+ * Azione "Invia aggiornamento" lanciata dal pulsante nella sidebar, sulla riga attualmente selezionata.
+ * Stessa logica di conferma del menu: se `confermaReinvio` non è true e la mail con prezzo era già
+ * stata inviata, l'esito torna 'RICHIEDE_CONFERMA' invece di inviare, cosi' il client puo' chiedere
+ * conferma e rilanciare con confermaReinvio=true.
+ * @param {boolean} [confermaReinvio]
+ * @return {{esito: string, errori: string[]}}
+ */
+function sidebarInviaAggiornamento(confermaReinvio) {
+  var id = idIscrizioneDaRigaSelezionata_();
+  if (!id) return { esito: 'ERRORE', errori: ['Seleziona prima una riga valida nel tab "' + FOGLI.ISCRIZIONI + '".'] };
+  return gestisciInviaAggiornamento(id, !!confermaReinvio);
 }

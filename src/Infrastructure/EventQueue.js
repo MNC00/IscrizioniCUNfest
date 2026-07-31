@@ -95,6 +95,36 @@ function prendiEventiDaProcessare(limite) {
 }
 
 /**
+ * Legge gli eventi più recenti dal tab Eventi (in ordine di arrivo), utile per dashboard/diagnosi.
+ * A differenza di prendiEventiDaProcessare, restituisce eventi in QUALUNQUE stato (anche COMPLETATO),
+ * incluso l'esito/errori: usata per popolare la dashboard di stato e per l'export log.
+ * @param {number} [limite] Numero massimo di eventi da restituire, a partire dai più recenti (default 200).
+ * @return {Array<{timestamp: Date, idIscrizione: string, tipoEvento: string, stato: string, esito: string, errori: string}>}
+ */
+function leggiEventiRecenti(limite) {
+  var sheet = getOCreaFoglioEventi();
+  var indiceIntestazioni = costruisciIndiceIntestazioni(sheet);
+  var ultimaRiga = sheet.getLastRow();
+  if (ultimaRiga < 2) return [];
+
+  var massimo = limite || 200;
+  var primaRiga = Math.max(2, ultimaRiga - massimo + 1);
+  var righe = sheet.getRange(primaRiga, 1, ultimaRiga - primaRiga + 1, sheet.getLastColumn()).getValues();
+  var idx = function (colonna) { return trovaColonna([colonna], indiceIntestazioni); };
+
+  return righe.map(function (r) {
+    return {
+      timestamp: r[idx(COLONNE_EVENTI.TIMESTAMP)],
+      idIscrizione: r[idx(COLONNE_EVENTI.ID_ISCRIZIONE)],
+      tipoEvento: r[idx(COLONNE_EVENTI.TIPO_EVENTO)],
+      stato: r[idx(COLONNE_EVENTI.STATO)],
+      esito: r[idx(COLONNE_EVENTI.ESITO)],
+      errori: r[idx(COLONNE_EVENTI.ERRORI)]
+    };
+  }).reverse(); // più recenti prima
+}
+
+/**
  * Marca un evento come completato con successo.
  * @param {number} numeroRiga Riga 1-based nel tab Eventi (vedi prendiEventiDaProcessare).
  * @param {string} [esito]

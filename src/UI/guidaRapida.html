@@ -1,0 +1,58 @@
+<!--
+  UI/guidaRapida.html
+  -----------------------------------------------------------------------
+  Cheat-sheet rapida richiamabile dal menu "Iscrizioni CUN Fest ▸ ❓ Guida
+  rapida". Non sostituisce MANUALE_UTENTE.md (che resta il riferimento
+  completo): è pensata per una consultazione veloce durante l'uso quotidiano.
+-->
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <style>
+    body { font-family: Arial, sans-serif; font-size: 13px; color: #222; padding: 4px 12px; }
+    h2 { font-size: 15px; margin: 14px 0 4px; color: #274e13; }
+    h2:first-of-type { margin-top: 0; }
+    p, li { line-height: 1.4; }
+    .stato { font-weight: bold; }
+    .box { background: #f4f9f0; border-left: 4px solid #6aa84f; padding: 6px 10px; margin: 8px 0; }
+    code { background: #eee; padding: 1px 4px; border-radius: 3px; }
+  </style>
+</head>
+<body>
+  <h2>Ciclo di vita di un'iscrizione</h2>
+  <ol>
+    <li><span class="stato">NUOVA</span> — appena arrivata dal form.</li>
+    <li><span class="stato">PREZZO_CALCOLATO</span> — il prezzo è stato calcolato ma non ancora comunicato.</li>
+    <li><span class="stato">MAIL_INVIATA_CON_PREZZO</span> / <span class="stato">MAIL_INVIATA_SENZA_PREZZO</span> — la mail è partita.</li>
+    <li><span class="stato">REINVIATA</span> — è stato mandato un secondo aggiornamento prezzo.</li>
+    <li><span class="stato">PAGATA</span> — il pagamento è stato registrato.</li>
+    <li><span class="stato">ANNULLATA</span> — iscrizione annullata.</li>
+  </ol>
+
+  <h2>Azioni più comuni (menu "Iscrizioni CUN Fest")</h2>
+  <ul>
+    <li><b>Ricalcola prezzo</b>: seleziona la riga dell'iscritto in "Iscrizioni CUN Fest", poi usa questa voce.</li>
+    <li><b>Invia aggiornamento prezzo</b>: manda la mail con il prezzo calcolato. Se ne era già stata inviata una, chiede conferma prima di rimandarla.</li>
+    <li><b>Registra pagamento</b>: seleziona la riga nel tab "Pagamento" e usa questa voce.</li>
+    <li><b>Invia comunicazione a tutti gli iscritti</b>: scrivi OGGETTO e TESTO in una riga del tab "Comunicazioni", poi lancia l'invio da qui.</li>
+    <li><b>Apri dettaglio iscrizione</b>: apre un pannello laterale con lo storico e le azioni rapide per la riga selezionata.</li>
+  </ul>
+
+  <div class="box">
+    💡 In caso di dubbio: seleziona sempre prima la riga giusta nel foglio corretto, poi scegli la voce di menu.
+    Il sistema segnala con un messaggio chiaro se qualcosa non va (es. "manca ID_ISCRIZIONE").
+  </div>
+
+  <h2>Dove guardare in caso di problemi</h2>
+  <ul>
+    <li>Tab <b>Dashboard</b>: quante iscrizioni per stato e gli ultimi errori.</li>
+    <li>Tab <b>Eventi</b>: log completo di ogni azione (chi, cosa, quando, esito).</li>
+    <li>Voce menu <b>Esporta log eventi</b>: crea una copia degli ultimi 200 eventi da condividere.</li>
+  </ul>
+
+  <p style="margin-top:16px; color:#666;">
+    Per la guida completa vedi il documento <code>MANUALE_UTENTE.md</code> condiviso con il team.
+  </p>
+</body>
+</html>

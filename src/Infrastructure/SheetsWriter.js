@@ -216,6 +216,46 @@ function scriviTabellaPasti(risultato, sheetPasti) {
 }
 
 /**
+ * Rigenera integralmente il tab "Dashboard" a partire dal risultato di Domain/Dashboard#calcolaDashboardStato.
+ * Pensata per una lettura rapida "a colpo d'occhio" da parte di un operatore non tecnico:
+ * un riquadro con i totali per stato e, sotto, gli ultimi errori da controllare.
+ * @param {{totaleIscrizioni: number, conteggiPerStato: Object<string, number>, eventiInErroreRecenti: Array, generatoIl: Date}} dati
+ * @param {Sheet} sheetDashboard
+ */
+function scriviDashboardStato(dati, sheetDashboard) {
+  sheetDashboard.clearContents();
+  var fuso = Session.getScriptTimeZone();
+
+  sheetDashboard.getRange('A1').setValue('Dashboard di stato — Iscrizioni CUN Fest').setFontWeight('bold').setFontSize(14);
+  sheetDashboard.getRange('A2').setValue('Aggiornata il: ' + Utilities.formatDate(dati.generatoIl, fuso, 'dd/MM/yyyy HH:mm'));
+  sheetDashboard.getRange('A3').setValue('Totale iscrizioni: ' + dati.totaleIscrizioni).setFontWeight('bold');
+
+  sheetDashboard.getRange('A5:B5').setValues([['Stato iscrizione', 'Numero']]).setBackground('#d9ead3').setFontWeight('bold');
+  var righeStato = Object.keys(dati.conteggiPerStato).map(function (stato) {
+    return [stato, dati.conteggiPerStato[stato]];
+  });
+  if (righeStato.length) sheetDashboard.getRange(6, 1, righeStato.length, 2).setValues(righeStato);
+
+  var baseErrori = 6 + righeStato.length + 2;
+  sheetDashboard.getRange(baseErrori, 1).setValue('Ultimi eventi in errore (da controllare)').setFontWeight('bold');
+  sheetDashboard.getRange(baseErrori + 1, 1, 1, 4)
+    .setValues([['Data/ora', 'ID_ISCRIZIONE', 'Tipo evento', 'Errore']])
+    .setBackground('#f4cccc').setFontWeight('bold');
+
+  var righeErrori = dati.eventiInErroreRecenti.map(function (evento) {
+    var quando = evento.timestamp instanceof Date ? Utilities.formatDate(evento.timestamp, fuso, 'dd/MM/yyyy HH:mm') : String(evento.timestamp || '');
+    return [quando, evento.idIscrizione || '', evento.tipoEvento || '', evento.errori || ''];
+  });
+  if (righeErrori.length) {
+    sheetDashboard.getRange(baseErrori + 2, 1, righeErrori.length, 4).setValues(righeErrori);
+  } else {
+    sheetDashboard.getRange(baseErrori + 2, 1).setValue('Nessun errore recente. 👍');
+  }
+
+  for (var c = 1; c <= 4; c++) sheetDashboard.autoResizeColumn(c);
+}
+
+/**
  * Registra l'esito di una comunicazione di massa nel tab "Comunicazioni".
  * @param {Sheet} sheetComunicazioni
  * @param {number} numeroRiga

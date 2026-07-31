@@ -18,11 +18,13 @@ function onOpen() {
     .addSeparator()
     .addItem('Invia comunicazione a tutti gli iscritti…', 'menuInviaComunicazioneATutti')
     .addSeparator()
-    .addItem('Rigenera viste ora (Ordinato/Pagamento/Pasti)', 'menuRigeneraVisteOra')
+    .addItem('Rigenera viste ora (Ordinato/Pagamento/Pasti/Dashboard)', 'menuRigeneraVisteOra')
     .addItem('Esporta log eventi (ultimi 200)', 'menuEsportaLogEventi')
     .addSeparator()
     .addItem('Migra dati legacy (una tantum)', 'menuMigraIscrizioniLegacy')
     .addItem('Apri dettaglio iscrizione…', 'menuApriSidebarDettaglio')
+    .addSeparator()
+    .addItem('❓ Guida rapida', 'menuApriGuidaRapida')
     .addToUi();
 }
 
@@ -171,4 +173,10 @@ function menuMigraIscrizioniLegacy() {
 /** Menu: apre la sidebar di dettaglio per la riga selezionata. */
 function menuApriSidebarDettaglio() {
   apriSidebarDettaglioIscrizione();
+}
+
+/** Menu: apre una finestra con la guida rapida (cheat-sheet) per l'operatore. */
+function menuApriGuidaRapida() {
+  var html = HtmlService.createHtmlOutputFromFile('UI/guidaRapida').setWidth(480).setHeight(560);
+  SpreadsheetApp.getUi().showModalDialog(html, 'Guida rapida — Iscrizioni CUN Fest');
 }
