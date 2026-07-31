@@ -25,18 +25,26 @@ scopo preciso:
 
 | Tab | A cosa serve | Lo modifico a mano? |
 |---|---|---|
-| **Iscrizioni CUN Fest** | Le risposte al Google Form, una riga per iscritto. Contiene anche `ID_ISCRIZIONE` e `STATO_ISCRIZIONE`, gestiti dal sistema. | Solo per correggere un errore di battitura in un dato personale (nome, email...). Non toccare mai `ID_ISCRIZIONE` o `STATO_ISCRIZIONE`. |
+| **Iscrizioni CUN Fest** | Le risposte grezze al Google Form, una riga per iscritto ("raw"). | Solo per correggere un errore di battitura in un dato personale (nome, email...). Non toccare mai `ID_ISCRIZIONE`. |
+| **Iscrizioni (operativo)** | La copia di lavoro delle iscrizioni, a schema fisso: qui vivono `STATO_ISCRIZIONE` e `Prezzo`, e da qui parte ogni azione (ricalcola prezzo, invia mail...). Si aggiorna da sola dal tab "Iscrizioni CUN Fest" ogni pochi minuti. | **Seleziona qui le righe** per le azioni di menu/sidebar. Non toccare mai `ID_ISCRIZIONE` o `STATO_ISCRIZIONE` a mano. |
 | **Iscrizioni ordinate** | Copia in ordine alfabetico delle iscrizioni, comoda da consultare/stampare. | **No**, viene rigenerata automaticamente ogni pochi minuti: qualunque modifica manuale verrà persa. |
 | **Pagamento** | Elenco iscritti con prezzo e colonna "Pagato". | Solo la colonna **Pagato** (di solito la spunti tramite il menu, vedi sotto). Tutto il resto viene rigenerato automaticamente. |
 | **Tabella Pasti** | Quanti pasti/pernottamenti servono ogni giorno, calcolati dalle iscrizioni. | **No**, è generata automaticamente. |
+| **Dashboard** | Riepilogo a colpo d'occhio: quante iscrizioni per stato e gli ultimi errori da controllare. | **No**, è generata automaticamente. |
 | **Configurazione** | Tariffe, sconti età, date del CUN, e alcune impostazioni tecniche. | Sì, è l'unico posto dove si cambiano i prezzi/le date (vedi [sezione 6](#6-il-foglio-configurazione-tariffe-e-date)). |
 | **Eventi** | Il "diario" di tutto quello che il sistema ha fatto (email inviate, errori, calcoli). Utile per capire cosa è successo a una specifica iscrizione. | No, è un log automatico. Puoi solo leggerlo. |
 | **Comunicazioni** | Da qui parte una mail a tutti gli iscritti (vedi [sezione 5](#5-inviare-una-comunicazione-a-tutti-gli-iscritti)). | Sì, aggiungendo una riga quando vuoi mandare una comunicazione. |
 
+> 💡 **Perché due tab di iscrizioni?** Il tab "Iscrizioni CUN Fest" è
+> collegato direttamente al Google Form: se in futuro si modificano le
+> domande del Form, questo tab può cambiare struttura. Il tab "Iscrizioni
+> (operativo)" invece ha una struttura fissa scelta dal sistema e non
+> cambia mai da sola: è il tab "sicuro" su cui lavorare ogni giorno.
+
 ## 2. Il ciclo di vita di un'iscrizione
 
 Ogni iscrizione ha uno **stato** (colonna `STATO_ISCRIZIONE` nel tab
-"Iscrizioni CUN Fest"), che racconta a che punto è arrivata:
+"Iscrizioni (operativo)"), che racconta a che punto è arrivata:
 
 | Stato | Cosa significa in pratica |
 |---|---|
@@ -56,8 +64,8 @@ azioni del menu (sezione 3) o quando arriva una nuova iscrizione dal Form.
 In alto nel foglio Google trovi un menu con questo nome, oltre a "File",
 "Modifica" ecc. Contiene tutte le azioni disponibili:
 
-### Ricalcola prezzo (riga selezionata)
-Seleziona una riga nel tab "Iscrizioni CUN Fest" (clic su una cella di
+### Ricalcola prezzo (riga selezionata in Iscrizioni operativo)
+Seleziona una riga nel tab "Iscrizioni (operativo)" (clic su una cella di
 quella riga), poi lancia questa voce. Ricalcola il prezzo di **quella sola
 iscrizione** usando le tariffe attuali in "Configurazione". Usala quando:
 - hai appena compilato/corretto le tariffe in Configurazione;
@@ -65,7 +73,7 @@ iscrizione** usando le tariffe attuali in "Configurazione". Usala quando:
 - hai corretto un dato dell'iscritto (es. data di arrivo sbagliata) e vuoi
   ricalcolare il prezzo di conseguenza.
 
-### Invia aggiornamento prezzo (riga selezionata)
+### Invia aggiornamento prezzo (riga selezionata in Iscrizioni operativo)
 Invia (o rimanda) la mail con il prezzo aggiornato all'iscritto della riga
 selezionata. Ti chiede sempre conferma prima di inviare. **Se era già stata
 inviata una mail con prezzo in precedenza**, ti chiederà una **seconda
@@ -74,23 +82,31 @@ non blocca il reinvio, ma vuole essere sicuro che non sia un click per
 sbaglio.
 
 ### Registra pagamento (riga selezionata in Pagamento)
-Da usare quando sei nel tab **"Pagamento"** (non "Iscrizioni CUN Fest"):
+Da usare quando sei nel tab **"Pagamento"** (non "Iscrizioni (operativo)"):
 seleziona la riga della persona che ha pagato e lancia questa voce. Spunta
 la colonna "Pagato" e porta lo stato dell'iscrizione a `PAGATA`.
 
 ### Invia comunicazione a tutti gli iscritti…
 Vedi [sezione 5](#5-inviare-una-comunicazione-a-tutti-gli-iscritti).
 
-### Rigenera viste ora (Ordinato/Pagamento/Pasti)
-Forza subito l'aggiornamento dei tab "Iscrizioni ordinate", "Pagamento" e
-"Tabella Pasti". Normalmente non serve: si aggiornano da sole ogni pochi
-minuti. Usala se hai appena fatto una modifica importante e non vuoi
-aspettare.
+### Rigenera viste ora (Importa dal Form + Ordinato/Pagamento/Pasti/Dashboard)
+Forza subito: 1) l'importazione delle nuove risposte del Form nel tab
+"Iscrizioni (operativo)"; 2) l'aggiornamento dei tab "Iscrizioni ordinate",
+"Pagamento", "Tabella Pasti" e "Dashboard". Normalmente non serve: si
+aggiornano da sole ogni pochi minuti. Usala se hai appena fatto una modifica
+importante e non vuoi aspettare.
 
 ### Esporta log eventi (ultimi 200)
 Crea un nuovo tab con una copia degli ultimi 200 eventi registrati (utile
 per analisi o per condividerli con chi si occupa della parte tecnica, senza
 dover scorrere il tab "Eventi" originale).
+
+### 🔍 Verifica struttura fogli
+Controlla che le colonne attese esistano ancora nei tab principali e mostra
+un riepilogo. Utile soprattutto se qualcuno ha modificato le domande del
+Google Form: segnala subito se manca qualcosa, invece di far comparire un
+errore poco chiaro durante un'azione. Viene eseguita automaticamente (in modo
+silenzioso) anche ogni volta che apri il foglio.
 
 ### Migra dati legacy (una tantum)
 **Non usarla** a meno che non te lo chieda esplicitamente chi si occupa
@@ -100,9 +116,13 @@ sistema.
 ### Apri dettaglio iscrizione…
 Vedi [sezione 4](#4-il-pannello-dettaglio-iscrizione).
 
+### ❓ Guida rapida
+Apre una finestra con un riepilogo veloce degli stati e delle azioni più
+comuni: utile per un ripasso senza dover riaprire questo manuale.
+
 ## 4. Il pannello "Dettaglio iscrizione"
 
-Seleziona una riga nel tab "Iscrizioni CUN Fest" e lancia **Menu ▸ Apri
+Seleziona una riga nel tab "Iscrizioni (operativo)" e lancia **Menu ▸ Apri
 dettaglio iscrizione…**: si apre un pannello laterale con:
 - i dati principali dell'iscritto e il suo stato attuale;
 - gli ultimi eventi registrati per quell'iscrizione (mail inviate, calcoli,
@@ -125,7 +145,7 @@ senza dover cercare a mano nel tab "Eventi".
    - Lascia vuote `STATO`, `DATA_INVIO`, `ID_OPERATORE`: li compila il sistema.
 3. Vai su **Menu ▸ Invia comunicazione a tutti gli iscritti…** e conferma.
 4. La mail parte a **tutti gli indirizzi email unici** presenti nel tab
-   "Iscrizioni CUN Fest" (chi ha più righe/iscrizioni con la stessa email la
+   "Iscrizioni (operativo)" (chi ha più righe/iscrizioni con la stessa email la
    riceve una sola volta).
 5. Dopo l'invio, la riga in "Comunicazioni" passa a `STATO = INVIATA` con
    data e chi l'ha inviata.

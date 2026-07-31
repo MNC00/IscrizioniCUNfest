@@ -18,8 +18,8 @@ function apriSidebarDettaglioIscrizione() {
  */
 function caricaDatiSidebar() {
   var sheet = SpreadsheetApp.getActiveSheet();
-  if (sheet.getName() !== FOGLI.ISCRIZIONI) {
-    return { ok: false, motivo: 'Seleziona una riga nel tab "' + FOGLI.ISCRIZIONI + '" e riapri questo pannello.' };
+  if (sheet.getName() !== FOGLI.ISCRIZIONI_OPERATIVO) {
+    return { ok: false, motivo: 'Seleziona una riga nel tab "' + FOGLI.ISCRIZIONI_OPERATIVO + '" (non nel tab del Form) e riapri questo pannello.' };
   }
   var riga = sheet.getActiveCell().getRow();
   if (riga <= 1) {
@@ -29,7 +29,7 @@ function caricaDatiSidebar() {
   var indiceIntestazioni = costruisciIndiceIntestazioni(sheet);
   var iscrizione = leggiIscrizioneDaRiga(sheet, indiceIntestazioni, riga);
   if (!iscrizione.idIscrizione) {
-    return { ok: false, motivo: 'Questa riga non ha un ID_ISCRIZIONE. Serve eseguire prima "Migra dati legacy" (chiedi a chi segue la parte tecnica).' };
+    return { ok: false, motivo: 'Questa riga non ha un ID_ISCRIZIONE. Esegui prima "Rigenera viste ora" dal menu per sincronizzare questo tab.' };
   }
 
   var sheetEventi = getOCreaFoglioEventi();
@@ -73,7 +73,7 @@ function caricaDatiSidebar() {
  */
 function sidebarRicalcolaPrezzo() {
   var id = idIscrizioneDaRigaSelezionata_();
-  if (!id) return { esito: 'ERRORE', errori: ['Seleziona prima una riga valida nel tab "' + FOGLI.ISCRIZIONI + '".'] };
+  if (!id) return { esito: 'ERRORE', errori: ['Seleziona prima una riga valida nel tab "' + FOGLI.ISCRIZIONI_OPERATIVO + '".'] };
   return gestisciRicalcolaPrezzo(id);
 }
 
@@ -87,6 +87,6 @@ function sidebarRicalcolaPrezzo() {
  */
 function sidebarInviaAggiornamento(confermaReinvio) {
   var id = idIscrizioneDaRigaSelezionata_();
-  if (!id) return { esito: 'ERRORE', errori: ['Seleziona prima una riga valida nel tab "' + FOGLI.ISCRIZIONI + '".'] };
+  if (!id) return { esito: 'ERRORE', errori: ['Seleziona prima una riga valida nel tab "' + FOGLI.ISCRIZIONI_OPERATIVO + '".'] };
   return gestisciInviaAggiornamento(id, !!confermaReinvio);
 }

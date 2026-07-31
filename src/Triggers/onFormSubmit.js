@@ -2,9 +2,9 @@
  * Triggers/onFormSubmit.js
  * -----------------------------------------------------------------------
  * Punto di ingresso installabile per il trigger ON_FORM_SUBMIT. Il trigger
- * deve essere velocissimo e non contenere logica di business: si limita ad
- * assegnare un ID_ISCRIZIONE alla nuova riga e ad accodare un evento
- * FORM_SUBMITTED. L'elaborazione vera (calcolo prezzo + email) avviene in
+ * importa/allinea subito il tab operativo ("Iscrizioni (operativo)") a
+ * partire dall'ultima risposta del Form e accoda un evento FORM_SUBMITTED.
+ * L'elaborazione vera (calcolo prezzo + email) avviene in
  * Orchestration/processaEventi.js, chiamata subito dopo per dare comunque
  * una risposta rapida, con il time-driver come rete di sicurezza in caso di
  * errore transitorio.
@@ -20,17 +20,14 @@
 function mioTriggerV2(e) {
   try {
     var sheet = getFoglioObbligatorio(FOGLI.ISCRIZIONI);
-    var indiceIntestazioni = costruisciIndiceIntestazioni(sheet);
     var ultimaRiga = sheet.getLastRow();
     if (ultimaRiga <= 1) return;
 
-    var idIscrizione = assegnaIdIscrizioneSeMancante(sheet, indiceIntestazioni, ultimaRiga);
-    var statoAttuale = trovaColonna([COLONNE_ISCRIZIONI.STATO_ISCRIZIONE], indiceIntestazioni) >= 0
-      ? sheet.getRange(ultimaRiga, trovaColonna([COLONNE_ISCRIZIONI.STATO_ISCRIZIONE], indiceIntestazioni) + 1).getValue()
-      : '';
-    if (!statoAttuale) {
-      scriviStatoIscrizione(sheet, indiceIntestazioni, ultimaRiga, STATI_ISCRIZIONE.NUOVA);
-    }
+    // Importa/allinea SOLO la riga appena arrivata (non l'intero foglio): con centinaia di
+    // iscrizioni una scansione completa ad ogni submit introdurrebbe un ritardo percepibile
+    // prima dell'invio della mail di conferma. Il time-driver (rigeneraViste, ogni ~5 minuti)
+    // fa comunque una scansione completa come rete di sicurezza.
+    var idIscrizione = importaRigaFormSingola(ultimaRiga);
 
     accodaEvento(idIscrizione, EVENTI_ISCRIZIONE.FORM_SUBMITTED, { riga: ultimaRiga });
 

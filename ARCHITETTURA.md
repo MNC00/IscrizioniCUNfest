@@ -84,13 +84,50 @@ attesa degli argomenti).
 
 ## 3. Dati: nuovi tab e colonne
 
-### 3.1 Tab "Iscrizioni CUN Fest" (invariato + 2 colonne)
+### 3.0 Tre livelli: Raw → Operativo → Viste derivate (Fase C)
 
-Aggiunte in coda (senza toccare le colonne del form):
+Per rendere il sistema robusto a modifiche future del Google Form (domande
+aggiunte/rimosse/riordinate), i dati delle iscrizioni ora attraversano tre
+livelli distinti:
 
-- `ID_ISCRIZIONE`: chiave univoca generata alla prima elaborazione (`ISCR-XXXXXXXX`).
-- `STATO_ISCRIZIONE`: uno tra `NUOVA`, `PREZZO_CALCOLATO`, `MAIL_INVIATA_SENZA_PREZZO`,
-  `MAIL_INVIATA_CON_PREZZO`, `REINVIATA`, `PAGATA`, `ANNULLATA`.
+1. **Raw — tab "Iscrizioni CUN Fest"**: risposte del Form così come arrivano.
+   L'unica scrittura che lo script fa qui è stampigliare `ID_ISCRIZIONE` sulla
+   riga (necessario per far corrispondere in modo stabile una risposta alla
+   sua riga operativa). Tutto il resto è "intoccato" dallo script.
+2. **Operativo — tab "Iscrizioni (operativo)"** *(nuovo)*: schema fisso e
+   gestito interamente dallo script (`ID_ISCRIZIONE | STATO_ISCRIZIONE | Nome
+   | Cognome | Email | Data di nascita | Zona di provenienza | Data di arrivo
+   | Pasto di arrivo | Data di partenza | Pasto di partenza | Partecipi SOLO
+   al pranzo del CUN? | Parliamo solo di lunedì | Prezzo`). **Tutta
+   l'orchestrazione (calcolo prezzo, invio mail, transizioni di stato) legge e
+   scrive qui**, mai sul tab raw. Gli operatori selezionano le righe da questo
+   tab per le azioni di menu/sidebar (Ricalcola prezzo, Invia aggiornamento…).
+3. **Viste derivate**: `Iscrizioni ordinate`, `Pagamento`, `Tabella Pasti`,
+   `Dashboard` — generate a partire dal tab operativo, come prima.
+
+L'allineamento Raw → Operativo avviene tramite
+`Orchestration/importaIscrizioni.js#importaIscrizioniDaForm()`: idempotente
+(matching per `ID_ISCRIZIONE`, mai duplica righe) e non distruttivo (non
+resetta mai uno stato/prezzo già avanzato nel tab operativo — vedi
+`Domain/Import.js#fondiIscrizioneDaForm`). Viene eseguita automaticamente:
+al submit del Form (`Triggers/onFormSubmit.js`), ad ogni rigenerazione viste
+(`Orchestration/rigeneraViste.js`, quindi anche dal time-driver ogni ~5 min).
+
+Questo disaccoppia la logica di business dalla struttura esatta del Form: se
+una domanda viene rinominata o riordinata, nel peggiore dei casi
+`Orchestration/verificaStruttura.js` segnala il problema (quel singolo campo
+non viene più importato correttamente), ma non blocca l'elaborazione delle
+altre iscrizioni né guasta lo stato già raggiunto da quelle esistenti.
+
+### 3.1 Tab "Iscrizioni CUN Fest" (raw, invariato + 1 colonna)
+
+Aggiunta in coda (senza toccare le colonne del form):
+
+- `ID_ISCRIZIONE`: chiave univoca generata alla prima importazione (`ISCR-XXXXXXXX`).
+
+`STATO_ISCRIZIONE`/`Prezzo` non vengono più scritti qui dal nuovo codice
+(sono proprietà esclusive del tab "Iscrizioni (operativo)", vedi §3.0): se
+già presenti da una migrazione precedente restano solo come storico visivo.
 
 Le vecchie colonne "Mail di conferma inviata"/"Nuovo invio"/"Stato nuovo invio"
 non vengono più scritte dal nuovo codice (restano solo come storico visivo se

@@ -12,13 +12,13 @@
 function onOpen() {
   SpreadsheetApp.getUi()
     .createMenu('Iscrizioni CUN Fest')
-    .addItem('Ricalcola prezzo (riga selezionata)', 'menuRicalcolaPrezzoRigaSelezionata')
-    .addItem('Invia aggiornamento prezzo (riga selezionata)', 'menuInviaAggiornamentoRigaSelezionata')
+    .addItem('Ricalcola prezzo (riga selezionata in Iscrizioni operativo)', 'menuRicalcolaPrezzoRigaSelezionata')
+    .addItem('Invia aggiornamento prezzo (riga selezionata in Iscrizioni operativo)', 'menuInviaAggiornamentoRigaSelezionata')
     .addItem('Registra pagamento (riga selezionata in Pagamento)', 'menuRegistraPagamentoRigaSelezionata')
     .addSeparator()
     .addItem('Invia comunicazione a tutti gli iscritti…', 'menuInviaComunicazioneATutti')
     .addSeparator()
-    .addItem('Rigenera viste ora (Ordinato/Pagamento/Pasti/Dashboard)', 'menuRigeneraVisteOra')
+    .addItem('Rigenera viste ora (Importa dal Form + Ordinato/Pagamento/Pasti/Dashboard)', 'menuRigeneraVisteOra')
     .addItem('Esporta log eventi (ultimi 200)', 'menuEsportaLogEventi')
     .addItem('🔍 Verifica struttura fogli', 'menuVerificaStrutturaFogli')
     .addSeparator()
@@ -31,12 +31,12 @@ function onOpen() {
   segnalaProblemiStrutturaSePresenti_();
 }
 
-/** @return {?string} ID_ISCRIZIONE della riga attualmente selezionata nel tab Iscrizioni, o null. */
+/** @return {?string} ID_ISCRIZIONE della riga attualmente selezionata nel tab operativo, o null. */
 function idIscrizioneDaRigaSelezionata_() {
   var ui = SpreadsheetApp.getUi();
   var sheet = SpreadsheetApp.getActiveSheet();
-  if (sheet.getName() !== FOGLI.ISCRIZIONI) {
-    ui.alert('Selezionare una riga nel tab "' + FOGLI.ISCRIZIONI + '".');
+  if (sheet.getName() !== FOGLI.ISCRIZIONI_OPERATIVO) {
+    ui.alert('Selezionare una riga nel tab "' + FOGLI.ISCRIZIONI_OPERATIVO + '" (non nel tab del Form).');
     return null;
   }
   var riga = sheet.getActiveCell().getRow();
@@ -48,7 +48,7 @@ function idIscrizioneDaRigaSelezionata_() {
   var idxId = trovaColonna([COLONNE_ISCRIZIONI.ID_ISCRIZIONE], indiceIntestazioni);
   var id = idxId >= 0 ? sheet.getRange(riga, idxId + 1).getValue() : null;
   if (!id) {
-    ui.alert('Questa riga non ha un ID_ISCRIZIONE. Eseguire prima "Migra dati legacy".');
+    ui.alert('Questa riga non ha un ID_ISCRIZIONE. Eseguire prima "Rigenera viste ora" per sincronizzare il tab operativo.');
     return null;
   }
   return id;

@@ -16,7 +16,9 @@
  */
 function rigeneraViste() {
   try {
-    var sheetIscrizioni = getFoglioObbligatorio(FOGLI.ISCRIZIONI);
+    importaIscrizioniDaForm();
+
+    var sheetIscrizioni = getOCreaFoglioOperativo();
     var iscrizioni = leggiTutteIscrizioni(sheetIscrizioni);
 
     var sheetOrdinato = getOCreaFoglio(FOGLI.ISCRIZIONI_ORDINATE);

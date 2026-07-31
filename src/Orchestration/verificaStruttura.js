@@ -56,16 +56,21 @@ function verificaColonneFoglio_(nomeFoglio, colonneRichieste, obbligatorio) {
  * @return {{ok: boolean, controlli: EsitoVerificaFoglio[]}}
  */
 function verificaStrutturaFogli() {
-  var colonneIscrizioniObbligatorie = [
-    COLONNE_ISCRIZIONI.ID_ISCRIZIONE, COLONNE_ISCRIZIONI.STATO_ISCRIZIONE,
+  // Il tab del Form deve avere solo i campi "anagrafici" raccolti dalle domande: ID_ISCRIZIONE,
+  // STATO_ISCRIZIONE e PREZZO sono proprietà del tab operativo, create automaticamente lì.
+  var colonneRawObbligatorie = [
     COLONNE_ISCRIZIONI.NOME, COLONNE_ISCRIZIONI.COGNOME, COLONNE_ISCRIZIONI.EMAIL,
     COLONNE_ISCRIZIONI.DATA_NASCITA, COLONNE_ISCRIZIONI.DATA_ARRIVO, COLONNE_ISCRIZIONI.PASTO_ARRIVO,
-    COLONNE_ISCRIZIONI.DATA_PARTENZA, COLONNE_ISCRIZIONI.PASTO_PARTENZA,
-    COLONNE_ISCRIZIONI.SOLO_PRANZO_CUN, COLONNE_ISCRIZIONI.PREZZO
+    COLONNE_ISCRIZIONI.DATA_PARTENZA, COLONNE_ISCRIZIONI.PASTO_PARTENZA, COLONNE_ISCRIZIONI.SOLO_PRANZO_CUN
+  ];
+  var colonneOperativoObbligatorie = [
+    COLONNE_ISCRIZIONI.ID_ISCRIZIONE, COLONNE_ISCRIZIONI.STATO_ISCRIZIONE,
+    COLONNE_ISCRIZIONI.NOME, COLONNE_ISCRIZIONI.COGNOME, COLONNE_ISCRIZIONI.EMAIL, COLONNE_ISCRIZIONI.PREZZO
   ];
 
   var controlli = [
-    verificaColonneFoglio_(FOGLI.ISCRIZIONI, colonneIscrizioniObbligatorie, true),
+    verificaColonneFoglio_(FOGLI.ISCRIZIONI, colonneRawObbligatorie, true),
+    verificaColonneFoglio_(FOGLI.ISCRIZIONI_OPERATIVO, colonneOperativoObbligatorie, false),
     verificaColonneFoglio_(FOGLI.CONFIGURAZIONE, [COLONNE_CONFIGURAZIONE.CHIAVE, COLONNE_CONFIGURAZIONE.VALORE], true),
     verificaColonneFoglio_(FOGLI.PAGAMENTO, [COLONNE_PAGAMENTO.ID_ISCRIZIONE, COLONNE_PAGAMENTO.PREZZO], false),
     verificaColonneFoglio_(FOGLI.COMUNICAZIONI, [COLONNE_COMUNICAZIONI.ID_COMM, COLONNE_COMUNICAZIONI.OGGETTO, COLONNE_COMUNICAZIONI.TESTO, COLONNE_COMUNICAZIONI.STATO], false),

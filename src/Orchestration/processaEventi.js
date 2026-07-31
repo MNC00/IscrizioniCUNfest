@@ -63,7 +63,7 @@ function smistaEvento_(evento) {
 
 /** Contesto comune riusato da più gestori: fogli + configurazione correnti. */
 function costruisciContestoElaborazione_() {
-  var sheetIscrizioni = getFoglioObbligatorio(FOGLI.ISCRIZIONI);
+  var sheetIscrizioni = getOCreaFoglioOperativo();
   var indiceIntestazioni = costruisciIndiceIntestazioni(sheetIscrizioni);
   var configurazione = leggiConfigurazioneCalcoloPrezzi(leggiMappaConfigurazione());
   return { sheetIscrizioni: sheetIscrizioni, indiceIntestazioni: indiceIntestazioni, configurazione: configurazione };
@@ -223,7 +223,7 @@ function gestisciComunicazioneMassiva(idComm) {
   var comunicazione = righe[0];
 
   var configurazione = leggiConfigurazioneCalcoloPrezzi(leggiMappaConfigurazione());
-  var iscrizioni = leggiTutteIscrizioni();
+  var iscrizioni = leggiTutteIscrizioni(getOCreaFoglioOperativo());
   var emailGiaInviate = {};
   var erroriInvio = [];
 

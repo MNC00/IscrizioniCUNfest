@@ -17,7 +17,7 @@ const vm = require('vm');
 
 const DOMAIN_DIR = path.join(__dirname, '..', '..', 'src', 'Domain');
 
-const ORDINE_CARICAMENTO = ['Prezzi.js', 'Pasti.js', 'Stati.js', 'Email.js', 'Dashboard.js'];
+const ORDINE_CARICAMENTO = ['Prezzi.js', 'Pasti.js', 'Stati.js', 'Email.js', 'Dashboard.js', 'Import.js'];
 
 /**
  * Crea un nuovo contesto sandbox con tutte le funzioni/costanti di Domain/*

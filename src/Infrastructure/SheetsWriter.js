@@ -12,6 +12,78 @@ function generaIdIscrizione() {
 }
 
 /**
+ * Recupera (creandolo se necessario) il tab "Iscrizioni (operativo)": lo strato intermedio,
+ * a schema fisso e gestito interamente dallo script, tra le risposte grezze del Google Form
+ * (tab "Iscrizioni CUN Fest") e le viste derivate. Le colonne qui non dipendono in alcun modo
+ * dall'ordine/nomi delle domande del Form: se il Form cambia struttura, solo l'importazione
+ * (Orchestration/importaIscrizioni.js) deve adattarsi, non tutta l'elaborazione a valle.
+ * @return {Sheet}
+ */
+function getOCreaFoglioOperativo() {
+  var sheet = getOCreaFoglio(FOGLI.ISCRIZIONI_OPERATIVO);
+  if (sheet.getLastRow() === 0) {
+    var intestazioni = [
+      COLONNE_ISCRIZIONI.ID_ISCRIZIONE, COLONNE_ISCRIZIONI.STATO_ISCRIZIONE,
+      COLONNE_ISCRIZIONI.NOME, COLONNE_ISCRIZIONI.COGNOME, COLONNE_ISCRIZIONI.EMAIL,
+      COLONNE_ISCRIZIONI.DATA_NASCITA, COLONNE_ISCRIZIONI.ZONA,
+      COLONNE_ISCRIZIONI.DATA_ARRIVO, COLONNE_ISCRIZIONI.PASTO_ARRIVO,
+      COLONNE_ISCRIZIONI.DATA_PARTENZA, COLONNE_ISCRIZIONI.PASTO_PARTENZA,
+      COLONNE_ISCRIZIONI.SOLO_PRANZO_CUN, COLONNE_ISCRIZIONI.PARLIAMO_LUNEDI,
+      COLONNE_ISCRIZIONI.PREZZO
+    ];
+    sheet.appendRow(intestazioni);
+    sheet.getRange(1, 1, 1, intestazioni.length).setBackground('#d9ead3').setFontWeight('bold');
+    sheet.setFrozenRows(1);
+  }
+  return sheet;
+}
+
+/**
+ * Scrive (creando la riga se assente) un'iscrizione completa nel tab operativo, per nome di
+ * colonna: usata dall'importazione per allineare i dati "anagrafici" letti dal Form, lasciando
+ * intatti STATO_ISCRIZIONE/PREZZO se già presenti (proprietà esclusiva del layer operativo).
+ * @param {Sheet} sheetOperativo
+ * @param {Object<string, number>} indiceIntestazioni Mappa intestazioni del tab operativo (verrà aggiornata se si creano colonne).
+ * @param {number} numeroRiga Riga 1-based esistente, oppure -1 per aggiungerne una nuova in coda.
+ * @param {Object} iscrizione Campi come restituiti da Domain/Import#fondiIscrizioneDaForm.
+ * @return {number} numero di riga (1-based) su cui è stata scritta l'iscrizione.
+ */
+function scriviIscrizioneOperativa(sheetOperativo, indiceIntestazioni, numeroRiga, iscrizione) {
+  var riga = numeroRiga > 0 ? numeroRiga : sheetOperativo.getLastRow() + 1;
+  var coppieColonnaValore = [
+    [COLONNE_ISCRIZIONI.ID_ISCRIZIONE, iscrizione.idIscrizione],
+    [COLONNE_ISCRIZIONI.STATO_ISCRIZIONE, iscrizione.statoIscrizione],
+    [COLONNE_ISCRIZIONI.NOME, iscrizione.nome],
+    [COLONNE_ISCRIZIONI.COGNOME, iscrizione.cognome],
+    [COLONNE_ISCRIZIONI.EMAIL, iscrizione.email],
+    [COLONNE_ISCRIZIONI.DATA_NASCITA, iscrizione.dataNascita],
+    [COLONNE_ISCRIZIONI.ZONA, iscrizione.zona],
+    [COLONNE_ISCRIZIONI.DATA_ARRIVO, iscrizione.dataArrivo],
+    [COLONNE_ISCRIZIONI.PASTO_ARRIVO, iscrizione.pastoArrivo],
+    [COLONNE_ISCRIZIONI.DATA_PARTENZA, iscrizione.dataPartenza],
+    [COLONNE_ISCRIZIONI.PASTO_PARTENZA, iscrizione.pastoPartenza],
+    [COLONNE_ISCRIZIONI.SOLO_PRANZO_CUN, iscrizione.soloPranzoCun ? 'Si' : 'No'],
+    [COLONNE_ISCRIZIONI.PARLIAMO_LUNEDI, iscrizione.parliamoLunedi],
+    [COLONNE_ISCRIZIONI.PREZZO, iscrizione.prezzo]
+  ];
+  // Una sola chiamata setValues per riga (non una per colonna): con centinaia di iscrizioni la
+  // differenza è sostanziale, ed è quello che rende accettabile la latenza del trigger di submit.
+  var indiciColonna = coppieColonnaValore.map(function (coppia) {
+    return assicuraColonna(sheetOperativo, indiceIntestazioni, coppia[0]);
+  });
+  var ultimaColonna = Math.max(sheetOperativo.getLastColumn(), Math.max.apply(null, indiciColonna) + 1);
+  var valoriRigaAttuali = riga <= sheetOperativo.getLastRow()
+    ? sheetOperativo.getRange(riga, 1, 1, ultimaColonna).getValues()[0]
+    : new Array(ultimaColonna).fill('');
+  coppieColonnaValore.forEach(function (coppia, i) {
+    var valore = coppia[1];
+    valoriRigaAttuali[indiciColonna[i]] = valore == null ? '' : valore;
+  });
+  sheetOperativo.getRange(riga, 1, 1, ultimaColonna).setValues([valoriRigaAttuali]);
+  return riga;
+}
+
+/**
  * Garantisce che la riga indicata abbia un ID_ISCRIZIONE; lo genera e scrive se assente.
  * @param {Sheet} sheetIscrizioni
  * @param {Object<string, number>} indiceIntestazioni

@@ -9,6 +9,7 @@
 /** Nomi dei tab dello spreadsheet. */
 var FOGLI = Object.freeze({
   ISCRIZIONI: 'Iscrizioni CUN Fest',
+  ISCRIZIONI_OPERATIVO: 'Iscrizioni (operativo)',
   ISCRIZIONI_ORDINATE: 'Iscrizioni ordinate',
   PAGAMENTO: 'Pagamento',
   TABELLA_PASTI: 'Tabella Pasti',
