@@ -1,0 +1,47 @@
+name: Test & Deploy
+
+# Esegue sempre i test (Domain layer) su push/PR. Il deploy (clasp push) parte
+# SOLO su push diretto a main (tipicamente dopo un merge di PR) e solo se i
+# test sono passati: questo è l'UNICO canale automatico che pubblica codice
+# sul progetto Apps Script — l'editor online non va mai usato per modificare
+# il codice a mano (vedi ARCHITETTURA.md §8 e MANUALE_UTENTE.md).
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: Test suite (Domain layer)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Esegui test
+        run: node --test "tests/*.test.js"
+
+  deploy:
+    name: Deploy su Apps Script (clasp push)
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Installa clasp
+        run: npm install -g @google/clasp
+      - name: Configura credenziali clasp
+        # CLASP_CREDENTIALS = contenuto del file ~/.clasprc.json generato da
+        # `clasp login` in locale (una tantum), salvato come secret del repo
+        # GitHub (Settings → Secrets and variables → Actions). Non committare
+        # mai questo file: contiene un token OAuth con accesso al progetto.
+        run: echo "$CLASP_CREDENTIALS" > ~/.clasprc.json
+        env:
+          CLASP_CREDENTIALS: ${{ secrets.CLASP_CREDENTIALS }}
+      - name: Deploy (clasp push)
+        run: clasp push --force
