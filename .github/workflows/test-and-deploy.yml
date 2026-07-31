@@ -7,9 +7,9 @@ name: Test & Deploy
 # il codice a mano (vedi ARCHITETTURA.md §8 e MANUALE_UTENTE.md).
 on:
   push:
-    branches: [main]
+    branches: [master]
   pull_request:
-    branches: [main]
+    branches: [master]
 
 jobs:
   test:
@@ -26,7 +26,7 @@ jobs:
   deploy:
     name: Deploy su Apps Script (clasp push)
     needs: test
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
