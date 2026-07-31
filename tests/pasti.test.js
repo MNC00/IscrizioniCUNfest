@@ -111,3 +111,28 @@ test('calcolaPastiPerGiorno: righe senza date valide vengono ignorate (nessuna e
   ];
   assert.doesNotThrow(() => contesto.calcolaPastiPerGiorno(iscrizioni, CONFIGURAZIONE));
 });
+
+test('calcolaPastiPerGiorno: "solo pranzo CUN" SENZA date (come nel form reale) viene comunque contato nel totale dedicato (bug trovato in verifica live)', () => {
+  // Nel form reale, chi risponde "sì" a "Partecipi SOLO al pranzo del CUN?" NON compila
+  // le domande data/pasto di arrivo e partenza (il form le salta): sul foglio quelle celle
+  // restano vuote. Il legacy conta comunque questa persona nel riquadro "Solo Pranzo CUN"
+  // (soloPranzoCounter++ avviene PRIMA e indipendentemente dal ciclo sulle date).
+  const iscrizioni = [
+    { // iscrizione "normale" per tutto il periodo, presente a pranzo il giorno di arrivo
+      dataArrivo: DATA_INIZIO_CUN, pastoArrivo: 'Colazione',
+      dataPartenza: DATA_FINE_CUN, pastoPartenza: 'Cena',
+      soloPranzoCun: false, parliamoLunedi: '', nome: 'Mario', cognome: 'Rossi'
+    },
+    { // iscrizione "solo pranzo CUN": date/pasti vuoti come sul form reale
+      dataArrivo: null, pastoArrivo: '', dataPartenza: null, pastoPartenza: '',
+      soloPranzoCun: true, parliamoLunedi: '', nome: 'Luigi', cognome: 'Bianchi'
+    }
+  ];
+  const legacyInput = iscrizioni.map((r) => ({ ...r, soloPranzoCun: r.soloPranzoCun ? 'Si' : 'No' }));
+
+  const risultatoNuovo = normalizzaTabellaDominio(contesto.calcolaPastiPerGiorno(iscrizioni, CONFIGURAZIONE));
+  const risultatoLegacy = calcolaPastiLegacyPuro(legacyInput, CONFIGURAZIONE);
+
+  assert.equal(risultatoNuovo.soloPranzoCunTotale, 1, 'il "solo pranzo CUN" senza date deve comunque essere contato');
+  assert.deepEqual(risultatoNuovo, risultatoLegacy);
+});

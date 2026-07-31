@@ -45,25 +45,30 @@ function calcolaPastiPerGiorno(iscrizioni, configurazione) {
   var elencoLunedi = [];
 
   (iscrizioni || []).forEach(function (iscrizione) {
-    if (!(iscrizione.dataArrivo instanceof Date) || isNaN(iscrizione.dataArrivo) ||
-        !(iscrizione.dataPartenza instanceof Date) || isNaN(iscrizione.dataPartenza)) {
-      return; // riga senza date valide: ignorata dal conteggio pasti, come nel comportamento storico
-    }
-
-    var arrivo = azzeraOra_(iscrizione.dataArrivo);
-    var partenza = azzeraOra_(iscrizione.dataPartenza);
-    var pastoArrivo = normalizzaTestoSemplice_(iscrizione.pastoArrivo);
-    var pastoPartenza = normalizzaTestoSemplice_(iscrizione.pastoPartenza);
     var rispostaLunedi = normalizzaTestoSemplice_(iscrizione.parliamoLunedi);
 
+    // Questi conteggi vanno calcolati per OGNI riga, indipendentemente dalla
+    // validita' delle date di arrivo/partenza: nel legacy chi risponde "si" a
+    // "Solo pranzo CUN" lascia vuote le date (il form salta quelle domande),
+    // ma veniva comunque incluso nel totale "Solo Pranzo CUN" e nell'elenco
+    // di chi c'e' lunedi'. Solo il ciclo giorno-per-giorno richiede date valide.
     if (iscrizione.soloPranzoCun) soloPranzoCunTotale++;
-
     if (rispostaLunedi !== '') {
       elencoLunedi.push({ cognome: iscrizione.cognome, nome: iscrizione.nome });
     }
     if (rispostaLunedi === 'me ne vado dopo lunedi' || rispostaLunedi === 'me ne vado dopo lunedì') {
       extraDormireUltimoGiorno++;
     }
+
+    if (!(iscrizione.dataArrivo instanceof Date) || isNaN(iscrizione.dataArrivo) ||
+        !(iscrizione.dataPartenza instanceof Date) || isNaN(iscrizione.dataPartenza)) {
+      return; // riga senza date valide: ignorata dal conteggio pasti giorno-per-giorno, come nel comportamento storico
+    }
+
+    var arrivo = azzeraOra_(iscrizione.dataArrivo);
+    var partenza = azzeraOra_(iscrizione.dataPartenza);
+    var pastoArrivo = normalizzaTestoSemplice_(iscrizione.pastoArrivo);
+    var pastoPartenza = normalizzaTestoSemplice_(iscrizione.pastoPartenza);
 
     var giorno = new Date(arrivo);
     while (giorno <= partenza) {
