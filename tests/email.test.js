@@ -66,6 +66,27 @@ test('costruisciEmailMassa produce lo stesso HTML del corpo email di sendRecover
   assert.equal(nuovo.oggetto, 'Oggetto di prova');
 });
 
+test('costruisciEmailMassa: testo su più paragrafi (righe vuote) genera <p> distinti (miglioramento rispetto al legacy, che appiattiva tutto in un unico <p>)', () => {
+  const testoLibero = 'Primo paragrafo.\n\nSecondo paragrafo con più frasi.\nSeconda riga dello stesso paragrafo.\n\nTerzo paragrafo.';
+  const risultato = contesto.costruisciEmailMassa('Giulia', 'Oggetto', testoLibero);
+
+  assert.equal(
+    risultato.html,
+    '<p>Ciao Giulia!</p>' +
+    '<p>Primo paragrafo.</p>' +
+    '<p>Secondo paragrafo con più frasi.<br>Seconda riga dello stesso paragrafo.</p>' +
+    '<p>Terzo paragrafo.</p>' +
+    '<p>A prestissimo!<br>Gruppo Iscrizioni.</p>'
+  );
+  // La versione testuale deve avere gli "a capo" preservati, non tutto appiattito su una riga.
+  assert.match(risultato.testo, /Primo paragrafo\.\nSecondo paragrafo con più frasi\.\nSeconda riga dello stesso paragrafo\.\nTerzo paragrafo\./);
+});
+
+test('costruisciEmailMassa: testo vuoto o solo spazi non produce un <p></p> vuoto', () => {
+  const risultato = contesto.costruisciEmailMassa('Giulia', 'Oggetto', '   \n\n  ');
+  assert.equal(risultato.html, '<p>Ciao Giulia!</p><p>A prestissimo!<br>Gruppo Iscrizioni.</p>');
+});
+
 test('costruisciEmailConferma/Aggiornamento: la versione testo non contiene tag HTML residui', () => {
   const ctx = { ...CONTESTO_BASE, isSoloPranzo: false, hasPrezzo: true };
   const conferma = contesto.costruisciEmailConferma(ctx);

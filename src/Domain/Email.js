@@ -177,16 +177,36 @@ function costruisciEmailAggiornamento(contesto) {
 }
 
 /**
+ * Converte un testo libero (scritto in una cella del foglio) in HTML con paragrafi/interruzioni
+ * di riga preservati, cosi' un corpo mail su più righe non collassa in un unico blocco.
+ * Regola: una riga vuota separa due paragrafi (<p>...</p> distinti); un singolo "a capo"
+ * dentro lo stesso paragrafo diventa <br> (es. testo scritto con Alt+Invio in una cella).
+ * @param {string} testoLibero
+ * @return {string} HTML con i paragrafi.
+ */
+function testoLiberoAHtml_(testoLibero) {
+  if (!testoLibero) return '';
+  var normalizzato = testoLibero.toString().replace(/\r\n/g, '\n').trim();
+  if (!normalizzato) return '';
+  return normalizzato
+    .split(/\n\s*\n/) // due o più "a capo" consecutivi = nuovo paragrafo
+    .filter(function (paragrafo) { return paragrafo.trim() !== ''; })
+    .map(function (paragrafo) { return '<p>' + paragrafo.replace(/\n/g, '<br>') + '</p>'; })
+    .join('');
+}
+
+/**
  * Costruisce un'email per una comunicazione di massa personalizzata solo nel saluto.
  * @param {string} nome
  * @param {string} oggetto
  * @param {string} testoLibero Testo libero scritto dall'operatore nel foglio "Comunicazioni".
+ *   Può contenere più paragrafi/righe: vedi testoLiberoAHtml_.
  * @return {{oggetto: string, html: string, testo: string}}
  */
 function costruisciEmailMassa(nome, oggetto, testoLibero) {
   var html =
     "<p>Ciao " + nome + "!</p>" +
-    "<p>" + testoLibero + "</p>" +
+    testoLiberoAHtml_(testoLibero) +
     "<p>A prestissimo!<br>Gruppo Iscrizioni.</p>";
   return { oggetto: oggetto, html: html, testo: convertiHtmlInTesto_(html) };
 }
