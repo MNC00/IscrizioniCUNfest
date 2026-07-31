@@ -49,6 +49,36 @@ test('flusso senza prezzo disponibile: NUOVA -> MAIL_INVIATA_SENZA_PREZZO -> REI
   assert.equal(r.stato, STATI_ISCRIZIONE.REINVIATA);
 });
 
+test('BUG REALE (trovato in verifica live) risolto: da PREZZO_CALCOLATO, INVIA_AGGIORNAMENTO deve transitare a REINVIATA', () => {
+  // Scenario reale riprodotto: un'iscrizione "solo pranzo CUN" arriva senza prezzo
+  // (MAIL_INVIATA_SENZA_PREZZO), l'operatore lancia "Ricalcola prezzo" dal menu
+  // (-> PREZZO_CALCOLATO) e poi "Invia aggiornamento" dal menu. Mancava la
+  // transizione INVIA_AGGIORNAMENTO da PREZZO_CALCOLATO: l'email partiva comunque
+  // (side-effect nell'orchestrazione) ma lo stato restava bloccato su
+  // PREZZO_CALCOLATO, disattivando il guard "già inviata" per invii futuri.
+  const r1 = contesto.prossimoStatoIscrizione(STATI_ISCRIZIONE.MAIL_INVIATA_SENZA_PREZZO, EVENTI_ISCRIZIONE.RICALCOLA_PREZZO);
+  assert.equal(r1.stato, STATI_ISCRIZIONE.PREZZO_CALCOLATO);
+
+  const r2 = contesto.prossimoStatoIscrizione(r1.stato, EVENTI_ISCRIZIONE.INVIA_AGGIORNAMENTO);
+  assert.equal(r2.applicata, true, 'la transizione deve essere applicata, non restare bloccata su PREZZO_CALCOLATO');
+  assert.equal(r2.stato, STATI_ISCRIZIONE.REINVIATA);
+});
+
+test('nessuno stato non-terminale è un "vicolo cieco" per gli eventi azionabili da menu operatore', () => {
+  // Invariante di robustezza: RICALCOLA_PREZZO, INVIA_AGGIORNAMENTO e PAGAMENTO_REGISTRATO
+  // devono sempre produrre una transizione applicata da qualunque stato non terminale,
+  // altrimenti un'azione da menu risulterebbe "silenziosamente ignorata" (come nel bug sopra).
+  const eventiAzionabiliDaMenu = [EVENTI_ISCRIZIONE.RICALCOLA_PREZZO, EVENTI_ISCRIZIONE.INVIA_AGGIORNAMENTO, EVENTI_ISCRIZIONE.PAGAMENTO_REGISTRATO];
+  const statiNonTerminali = Object.values(STATI_ISCRIZIONE).filter((s) => !contesto.isStatoIscrizioneTerminale(s));
+
+  statiNonTerminali.forEach((stato) => {
+    eventiAzionabiliDaMenu.forEach((evento) => {
+      const r = contesto.prossimoStatoIscrizione(stato, evento);
+      assert.equal(r.applicata, true, `${stato} + ${evento} dovrebbe produrre una transizione applicata (nessun vicolo cieco)`);
+    });
+  });
+});
+
 test('regola storica preservata: una volta MAIL_INVIATA_CON_PREZZO o REINVIATA, il reinvio è gestito esplicitamente (bloccato a livello di orchestrazione)', () => {
   // La macchina a stati stessa permette la transizione INVIA_AGGIORNAMENTO anche da
   // MAIL_INVIATA_CON_PREZZO/REINVIATA (idempotente verso REINVIATA), ma il BLOCCO vero
