@@ -81,6 +81,15 @@ conferma esplicita** ("sei sicuro di voler rimandare?") prima di procedere:
 non blocca il reinvio, ma vuole essere sicuro che non sia un click per
 sbaglio.
 
+### ❌ Annulla iscrizione (riga selezionata in Iscrizioni operativo)
+Annulla manualmente l'iscrizione selezionata: equivale a quando è il
+partecipante stesso ad annullarsi dal link nella mail (vedi
+[sezione 10](#10-annullamento-iscrizione-da-parte-del-partecipante)), ma
+lanciata da te. Porta lo stato a `ANNULLATA` e invia all'iscritto la mail
+di conferma annullamento. Chiede sempre conferma prima di procedere, perché
+non è annullabile da menu una volta fatta (per ripristinare un'iscrizione
+annullata per errore, contatta chi segue la parte tecnica).
+
 ### Registra pagamento (riga selezionata in Pagamento)
 Da usare quando sei nel tab **"Pagamento"** (non "Iscrizioni (operativo)"):
 seleziona la riga della persona che ha pagato e lancia questa voce. Spunta

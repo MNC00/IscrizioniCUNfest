@@ -14,6 +14,7 @@ function onOpen() {
     .createMenu('Iscrizioni CUN Fest')
     .addItem('Ricalcola prezzo (riga selezionata in Iscrizioni operativo)', 'menuRicalcolaPrezzoRigaSelezionata')
     .addItem('Invia aggiornamento prezzo (riga selezionata in Iscrizioni operativo)', 'menuInviaAggiornamentoRigaSelezionata')
+    .addItem('❌ Annulla iscrizione (riga selezionata in Iscrizioni operativo)', 'menuAnnullaIscrizioneRigaSelezionata')
     .addItem('Registra pagamento (riga selezionata in Pagamento)', 'menuRegistraPagamentoRigaSelezionata')
     .addSeparator()
     .addItem('Invia comunicazione a tutti gli iscritti…', 'menuInviaComunicazioneATutti')
@@ -97,6 +98,28 @@ function menuInviaAggiornamentoRigaSelezionata() {
     risultato = gestisciInviaAggiornamento(id, true);
   }
   mostraEsito_('Invia aggiornamento', risultato);
+}
+
+/**
+ * Menu: annulla l'iscrizione selezionata (equivalente operatore del self-service via Web App,
+ * Fase D). Richiede conferma esplicita perché è un'azione che invia una mail al partecipante
+ * e transita lo stato a ANNULLATA (idempotente: su una riga già annullata non fa nulla di più).
+ */
+function menuAnnullaIscrizioneRigaSelezionata() {
+  var id = idIscrizioneDaRigaSelezionata_();
+  if (!id) return;
+  var ui = SpreadsheetApp.getUi();
+  var conferma = ui.alert(
+    'Annulla iscrizione',
+    'Confermi l\'annullamento di questa iscrizione? Verrà impostato lo stato ANNULLATA e verrà inviata ' +
+    'una mail di conferma annullamento all\'iscritto. L\'operazione non è reversibile da menu.',
+    ui.ButtonSet.YES_NO
+  );
+  if (conferma !== ui.Button.YES) return;
+
+  accodaEvento(id, EVENTI_ISCRIZIONE.ANNULLA, { origine: 'operatore' });
+  var risultato = processaEventiPendenti(5);
+  mostraEsito_('Annulla iscrizione', { esito: risultato.errori === 0 ? 'OK' : 'ERRORE', errori: ['Vedi tab Eventi per i dettagli.'] });
 }
 
 /** Menu: registra il pagamento per la riga selezionata nel tab Pagamento. */
