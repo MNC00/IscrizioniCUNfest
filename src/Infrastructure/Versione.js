@@ -10,9 +10,9 @@
  * (o almeno ad ogni release), tipicamente nello stesso commit del cambiamento.
  */
 var VERSIONE_SCRIPT = Object.freeze({
-  NUMERO: '1.3.0',
+  NUMERO: '1.4.0',
   DATA: '2026-07-31', // aggiornare alla data dell'ultimo deploy rilevante
-  DESCRIZIONE: 'Fase A (a5): validazioni a tendina su celle libere (Pagato, Stato Comunicazioni)'
+  DESCRIZIONE: 'Fase D: annullamento self-service iscrizione via Web App (token a uso singolo, mail di conferma annullamento)'
 });
 
 /**

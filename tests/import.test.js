@@ -68,3 +68,15 @@ test('importazioni successive aggiornano sempre i campi anagrafici dal Form', ()
   assert.equal(risultato.email, 'nuova-email@example.com');
   assert.equal(risultato.zona, 'Sud');
 });
+
+test('TOKEN_ANNULLAMENTO (Fase D): alla prima importazione senza token sul Form resta null (viene generato solo all\'invio mail)', () => {
+  const risultato = contesto.fondiIscrizioneDaForm(datiFormBase(), null);
+  assert.equal(risultato.tokenAnnullamento, null);
+});
+
+test('TOKEN_ANNULLAMENTO: è una proprietà esclusiva del layer operativo, non viene mai resettato da un nuovo import', () => {
+  const datiForm = datiFormBase({ pastoArrivo: 'Pranzo' });
+  const esistente = { statoIscrizione: STATI_ISCRIZIONE.MAIL_INVIATA_CON_PREZZO, prezzo: 100, tokenAnnullamento: 'abc-123' };
+  const risultato = contesto.fondiIscrizioneDaForm(datiForm, esistente);
+  assert.equal(risultato.tokenAnnullamento, 'abc-123');
+});

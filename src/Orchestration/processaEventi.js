@@ -54,6 +54,8 @@ function smistaEvento_(evento) {
       return gestisciInviaAggiornamento(evento.idIscrizione, !!(evento.dati && evento.dati.confermaReinvio));
     case EVENTI_ISCRIZIONE.PAGAMENTO_REGISTRATO:
       return gestisciPagamentoRegistrato(evento.idIscrizione);
+    case EVENTI_ISCRIZIONE.ANNULLA:
+      return gestisciAnnullamento(evento.idIscrizione);
     case EVENTI_ISCRIZIONE.COMUNICAZIONE_MASSIVA:
       return gestisciComunicazioneMassiva(evento.dati.idComm);
     default:
@@ -80,8 +82,27 @@ function costruisciContestoEmail_(iscrizione, hasPrezzo) {
     pastoArrivo: iscrizione.pastoArrivo,
     dataPartenzaFormattata: iscrizione.dataPartenza ? formattaDataItaliana_(iscrizione.dataPartenza) : '',
     pastoPartenza: iscrizione.pastoPartenza,
-    prezzo: iscrizione.prezzo
+    prezzo: iscrizione.prezzo,
+    linkAnnullamento: costruisciLinkAnnullamento_(iscrizione.tokenAnnullamento)
   };
+}
+
+/**
+ * Costruisce il link self-service di annullamento (Fase D) a partire dal token, usando l'URL
+ * della Web App attualmente distribuita. Se la Web App non è (ancora) distribuita, oppure il
+ * token non è disponibile, ritorna null: le email restano identiche a prima (nessun link rotto).
+ * @param {?string} token
+ * @return {?string}
+ */
+function costruisciLinkAnnullamento_(token) {
+  if (!token) return null;
+  try {
+    var url = ScriptApp.getService().getUrl();
+    if (!url) return null;
+    return url + '?token=' + encodeURIComponent(token);
+  } catch (e) {
+    return null; // Web App non distribuita: nessun link, non è un errore bloccante.
+  }
 }
 
 /** Formatta una data in italiano, es. "Lunedì 04 Agosto 2026". */
@@ -115,6 +136,10 @@ function gestisciFormSubmitted(idIscrizione) {
     scriviStatoIscrizione(ctx.sheetIscrizioni, ctx.indiceIntestazioni, riga, t1.stato);
     iscrizione.statoIscrizione = t1.stato;
   }
+
+  // Genera (se assente) il token di annullamento self-service (Fase D), incluso nel link
+  // che Domain/Email inserisce nella mail di conferma quando la Web App è distribuita.
+  iscrizione.tokenAnnullamento = assegnaTokenAnnullamentoSeMancante(ctx.sheetIscrizioni, ctx.indiceIntestazioni, riga);
 
   var payload = costruisciEmailConferma(costruisciContestoEmail_(iscrizione, hasPrezzo));
   var esitoInvio = inviaEmail({
@@ -208,6 +233,36 @@ function gestisciPagamentoRegistrato(idIscrizione) {
   var iscrizione = leggiIscrizioneDaRiga(ctx.sheetIscrizioni, ctx.indiceIntestazioni, riga);
   var transizione = prossimoStatoIscrizione(iscrizione.statoIscrizione, EVENTI_ISCRIZIONE.PAGAMENTO_REGISTRATO);
   scriviStatoIscrizione(ctx.sheetIscrizioni, ctx.indiceIntestazioni, riga, transizione.stato);
+  return { esito: 'OK', errori: [] };
+}
+
+/**
+ * Annulla un'iscrizione (transizione a stato ANNULLATA) e invia la mail di conferma
+ * annullamento. Chiamata sia dal self-service Web App (Triggers/webAppAnnullamento.js)
+ * sia da un futuro annullamento manuale a menu. Se lo stato è già ANNULLATA la transizione
+ * non viene riapplicata (idempotente): non è un errore, semplicemente non fa nulla di più.
+ * @param {string} idIscrizione
+ * @return {{esito: string, errori: string[]}}
+ */
+function gestisciAnnullamento(idIscrizione) {
+  var ctx = costruisciContestoElaborazione_();
+  var riga = trovaRigaPerIdIscrizione(ctx.sheetIscrizioni, ctx.indiceIntestazioni, idIscrizione);
+  if (riga < 0) return { esito: 'ERRORE', errori: ['Iscrizione non trovata (ID_ISCRIZIONE=' + idIscrizione + '): verificare che la riga esista ancora nel tab Iscrizioni CUN Fest e non sia stata cancellata.'] };
+
+  var iscrizione = leggiIscrizioneDaRiga(ctx.sheetIscrizioni, ctx.indiceIntestazioni, riga);
+  var transizione = prossimoStatoIscrizione(iscrizione.statoIscrizione, EVENTI_ISCRIZIONE.ANNULLA);
+  if (!transizione.applicata) return { esito: 'OK', errori: [] }; // già annullata: nessuna azione ulteriore
+
+  scriviStatoIscrizione(ctx.sheetIscrizioni, ctx.indiceIntestazioni, riga, transizione.stato);
+  invalidaTokenAnnullamento(ctx.sheetIscrizioni, ctx.indiceIntestazioni, riga);
+
+  if (!iscrizione.email) return { esito: 'OK', errori: [] };
+  var payload = costruisciEmailAnnullamento({ nome: iscrizione.nome });
+  var esitoInvio = inviaEmail({
+    to: iscrizione.email, subject: payload.oggetto, html: payload.html, testo: payload.testo,
+    idIscrizione: idIscrizione, tipoEvento: 'MAIL_ANNULLAMENTO', dryRun: ctx.configurazione.modalitaTestNoInvioEmail
+  });
+  if (esitoInvio.esito === 'ERRORE') return { esito: 'ERRORE', errori: [esitoInvio.errore] };
   return { esito: 'OK', errori: [] };
 }
 

@@ -97,6 +97,19 @@ function riepilogoSoggiornoAggiornamento_(contesto) {
 }
 
 /**
+ * Paragrafo con il link per l'annullamento self-service dell'iscrizione (Fase D).
+ * Aggiunto SOLO se viene fornito un link (contesto.linkAnnullamento): se il link manca
+ * (es. Web App non ancora distribuita) l'email resta identica a prima, per compatibilità.
+ * @param {string} link
+ */
+function paragrafoAnnullamento_(link) {
+  return (
+    "<p style='font-size:0.9em;color:#555'>Se non potrai più partecipare, puoi annullare la tua " +
+    "iscrizione in autonomia da questo link: <a href='" + link + "'>Annulla la mia iscrizione</a>.</p>"
+  );
+}
+
+/**
  * Costruisce l'email di conferma iscrizione (primo invio, dal form).
  * @param {Object} contesto
  * @param {string} contesto.nome
@@ -108,6 +121,7 @@ function riepilogoSoggiornoAggiornamento_(contesto) {
  * @param {string} contesto.dataPartenzaFormattata
  * @param {string} contesto.pastoPartenza
  * @param {number} [contesto.prezzo]
+ * @param {string} [contesto.linkAnnullamento] Link self-service di annullamento (Fase D); se assente non viene mostrato nulla.
  * @return {{oggetto: string, html: string, testo: string}}
  */
 function costruisciEmailConferma(contesto) {
@@ -139,6 +153,10 @@ function costruisciEmailConferma(contesto) {
          "<p>Purtroppo, al momento non ci sono stati comunicati i prezzi dell'esperienza da parte della gestione della casa.</p>" +
          "<p>Non appena ci saranno novità, sarai informato.</p>" +
          paragrafoChiusura_());
+  }
+
+  if (contesto.linkAnnullamento) {
+    html += paragrafoAnnullamento_(contesto.linkAnnullamento);
   }
 
   return { oggetto: oggetto, html: html, testo: convertiHtmlInTesto_(html) };
@@ -173,6 +191,28 @@ function costruisciEmailAggiornamento(contesto) {
       paragrafoPagamento_() + paragrafoChiusuraAggiornamento_();
   }
 
+  if (contesto.linkAnnullamento) {
+    html += paragrafoAnnullamento_(contesto.linkAnnullamento);
+  }
+
+  return { oggetto: oggetto, html: html, testo: convertiHtmlInTesto_(html) };
+}
+
+/**
+ * Costruisce l'email di conferma annullamento iscrizione (Fase D): inviata dopo che
+ * un'iscrizione è transitata a STATI_ISCRIZIONE.ANNULLATA (sia da self-service via
+ * Web App, sia da annullamento manuale di un operatore).
+ * @param {Object} contesto
+ * @param {string} contesto.nome
+ * @return {{oggetto: string, html: string, testo: string}}
+ */
+function costruisciEmailAnnullamento(contesto) {
+  var oggetto = 'Iscrizione annullata - CUN Fest';
+  var html =
+    "<p>Ciao " + contesto.nome + ".</p>" +
+    "<p>Ti confermiamo che la tua iscrizione al CUN Fest è stata annullata come richiesto.</p>" +
+    "<p>Se si è trattato di un errore o hai cambiato idea, scrivici pure rispondendo a questa email: ti aiuteremo a reiscriverti.</p>" +
+    "<br><p>Grazie e a presto.</p><p>Gruppo Iscrizioni</p>";
   return { oggetto: oggetto, html: html, testo: convertiHtmlInTesto_(html) };
 }
 

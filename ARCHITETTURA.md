@@ -279,3 +279,39 @@ push` dal repository ufficiale, mai dall'editor Apps Script online:
   il progetto in uno script standalone (valutato ma non adottato per ora,
   vedi discussione nel changelog/commit di Fase A): i due meccanismi sopra
   (versione + protezioni) sono la mitigazione scelta nel frattempo.
+
+## 9. Annullamento self-service (Fase D)
+
+Ogni iscrizione riceve, al momento dell'invio della mail di conferma, un
+`TOKEN_ANNULLAMENTO` univoco (UUID completo, per la massima entropia:
+concede a chi lo possiede il potere di annullare l'iscrizione senza
+autenticazione) memorizzato nel tab "Iscrizioni (operativo)". Il token è
+incluso come link nelle mail di conferma e di aggiornamento prezzo (se e
+solo se la Web App è distribuita: altrimenti l'email resta identica a
+prima, nessun link rotto).
+
+**Flusso:**
+
+1. `Triggers/webAppAnnullamento.js#doGet` risolve il token e mostra una
+   pagina di **conferma esplicita** (mai un annullamento diretto su GET,
+   per evitare che scanner/anteprime email attivino l'azione da soli).
+2. Il click sul pulsante invia un `POST` (`doPost`) che accoda un evento
+   `EVENTI_ISCRIZIONE.ANNULLA` nella stessa coda usata da tutto il resto
+   del sistema (`Infrastructure/EventQueue`) e lo elabora subito.
+3. `Orchestration/processaEventi.js#gestisciAnnullamento` applica la
+   transizione di stato (`Domain/Stati.js`, sempre permessa da qualunque
+   stato non terminale), **invalida il token** (uso singolo: un secondo
+   click sullo stesso link mostra "link non più valido") e invia la mail
+   di conferma annullamento (`Domain/Email.js#costruisciEmailAnnullamento`).
+4. Casi particolari gestiti dalla pagina: iscrizione già `ANNULLATA`
+   (messaggio informativo, nessuna doppia mail) e iscrizione già `PAGATA`
+   (il self-service è bloccato: si chiede di scrivere agli organizzatori
+   per gestire un eventuale rimborso).
+
+**Attivazione (operazione manuale una tantum, non automatizzabile da
+clasp/CI):** Estensioni → Apps Script → Deploy → Nuovo deployment → tipo
+"App web", accesso "Chiunque" (i partecipanti aprono il link da mobile,
+spesso senza essere loggati con l'account Google usato per il Form). Il
+menu "🔗 Mostra link pagina annullamento" mostra l'URL pubblico una volta
+distribuita, o le istruzioni se non lo è ancora.
+

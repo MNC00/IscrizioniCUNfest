@@ -136,7 +136,8 @@ function leggiIscrizioneDaRiga(sheetIscrizioni, indiceIntestazioni, numeroRiga) 
     pastoPartenza: get(COLONNE_ISCRIZIONI.PASTO_PARTENZA),
     soloPranzoCun: normalizzaTesto(get(COLONNE_ISCRIZIONI.SOLO_PRANZO_CUN)) === 'si',
     parliamoLunedi: get(COLONNE_ISCRIZIONI.PARLIAMO_LUNEDI),
-    prezzo: get(COLONNE_ISCRIZIONI.PREZZO)
+    prezzo: get(COLONNE_ISCRIZIONI.PREZZO),
+    tokenAnnullamento: get(COLONNE_ISCRIZIONI.TOKEN_ANNULLAMENTO)
   };
 }
 
@@ -171,6 +172,28 @@ function trovaRigaPerIdIscrizione(sheetIscrizioni, indiceIntestazioni, idIscrizi
   var colonnaId = sheetIscrizioni.getRange(2, idxId + 1, ultimaRiga - 1, 1).getValues();
   for (var i = 0; i < colonnaId.length; i++) {
     if (colonnaId[i][0] === idIscrizione) return i + 2;
+  }
+  return -1;
+}
+
+/**
+ * Trova il numero di riga (1-based) di un'iscrizione dato il suo TOKEN_ANNULLAMENTO (Fase D).
+ * Il token è a uso singolo: viene invalidato (svuotato) non appena l'annullamento viene eseguito,
+ * così un link riutilizzato o inoltrato non produce effetti una seconda volta.
+ * @param {Sheet} sheetIscrizioni Tab operativo.
+ * @param {Object<string, number>} indiceIntestazioni
+ * @param {string} token
+ * @return {number} numero di riga, o -1 se non trovato/non più valido.
+ */
+function trovaRigaPerTokenAnnullamento(sheetIscrizioni, indiceIntestazioni, token) {
+  if (!token) return -1;
+  var idxToken = trovaColonna([COLONNE_ISCRIZIONI.TOKEN_ANNULLAMENTO], indiceIntestazioni);
+  if (idxToken < 0) return -1;
+  var ultimaRiga = sheetIscrizioni.getLastRow();
+  if (ultimaRiga < 2) return -1;
+  var colonna = sheetIscrizioni.getRange(2, idxToken + 1, ultimaRiga - 1, 1).getValues();
+  for (var i = 0; i < colonna.length; i++) {
+    if (colonna[i][0] && colonna[i][0] === token) return i + 2;
   }
   return -1;
 }

@@ -140,6 +140,12 @@ tecnica, che il foglio stia effettivamente eseguendo l'ultima versione
 pubblicata (il codice va sempre aggiornato solo tramite git, mai
 modificando l'editor Apps Script a mano).
 
+### 🔗 Mostra link pagina annullamento (Fase D)
+Mostra l'indirizzo pubblico della pagina che i partecipanti usano per
+annullare da soli la propria iscrizione (vedi §10). Se compare un messaggio
+che dice che la Web App non è ancora distribuita, serve un'attivazione una
+tantum lato tecnico (vedi §10) prima che il link compaia nelle mail.
+
 ### ❓ Guida rapida
 Apre una finestra con un riepilogo veloce degli stati e delle azioni più
 comuni: utile per un ripasso senza dover riaprire questo manuale.
@@ -249,3 +255,28 @@ Se qualcosa non torna e questo manuale non basta a risolverlo:
    tab "Eventi", e annota cosa vedi (in particolare la colonna `ERRORI`).
 2. Contatta chi segue la parte tecnica del sistema, indicando l'`ID_ISCRIZIONE`
    coinvolto e cosa hai provato a fare.
+
+## 10. Annullamento iscrizione da parte del partecipante
+
+Ogni mail di conferma/aggiornamento prezzo contiene, in fondo, un link
+personale "Annulla la mia iscrizione". Se un partecipante lo usa:
+1. Vede una pagina con un breve riepilogo (nome, email) e un pulsante rosso
+   "Conferma annullamento" — cliccare il link da solo **non annulla nulla**,
+   serve il click di conferma.
+2. Dopo la conferma, l'iscrizione passa allo stato `ANNULLATA` (visibile nel
+   tab "Iscrizioni (operativo)") e al partecipante arriva una mail di
+   conferma dell'annullamento.
+3. Il link è **utilizzabile una sola volta**: se viene riaperto dopo,
+   mostra "link non più valido".
+4. Se l'iscrizione risulta già **pagata**, il link non annulla nulla in
+   automatico: invita il partecipante a scrivere via email, così da poter
+   gestire manualmente un eventuale rimborso.
+
+**Attivazione (passo tecnico una tantum):** questa funzione richiede che il
+progetto sia distribuito come "Web App" da Apps Script (Estensioni → Apps
+Script → Deploy → Nuovo deployment → tipo "App web", accesso "Chiunque").
+Finché non è distribuita, le mail vengono inviate normalmente ma **senza**
+il link di annullamento (nessun errore, nessun link rotto). Usa il menu
+"🔗 Mostra link pagina annullamento" per verificare se è attiva. Per il
+primo deploy, o se qualcosa non torna, rivolgersi a chi segue la parte
+tecnica.

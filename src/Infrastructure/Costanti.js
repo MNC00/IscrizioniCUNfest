@@ -36,6 +36,7 @@ var COLONNE_ISCRIZIONI = Object.freeze({
   SOLO_PRANZO_CUN: 'Partecipi SOLO al pranzo del CUN?',
   PARLIAMO_LUNEDI: 'Parliamo solo di lunedì',
   PREZZO: 'Prezzo',
+  TOKEN_ANNULLAMENTO: 'TOKEN_ANNULLAMENTO',
   // colonne legacy mantenute per compatibilità con eventuali letture manuali/storiche
   MAIL_CONFERMA_INVIATA_LEGACY: 'Mail di conferma inviata',
   NUOVO_INVIO_LEGACY: 'Nuovo invio',

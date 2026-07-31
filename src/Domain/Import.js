@@ -50,6 +50,10 @@ function fondiIscrizioneDaForm(datiForm, esistente) {
     // tranne alla primissima importazione, dove si eredita l'eventuale stato/prezzo già presente
     // sul tab Form (migrazione iniziale).
     statoIscrizione: esistente ? esistente.statoIscrizione : statoEreditatoDalForm,
-    prezzo: esistente ? (esistente.prezzo !== '' && esistente.prezzo != null ? esistente.prezzo : null) : prezzoEreditatoDalForm
+    prezzo: esistente ? (esistente.prezzo !== '' && esistente.prezzo != null ? esistente.prezzo : null) : prezzoEreditatoDalForm,
+    // TOKEN_ANNULLAMENTO (Fase D): generato solo al momento dell'invio della mail di conferma
+    // (vedi Orchestration/processaEventi#gestisciFormSubmitted), mai dall'importazione: qui si
+    // preserva solo l'eventuale valore già presente nel layer operativo.
+    tokenAnnullamento: esistente ? esistente.tokenAnnullamento : (datiForm.tokenAnnullamento || null)
   };
 }

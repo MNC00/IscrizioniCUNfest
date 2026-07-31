@@ -28,6 +28,7 @@ function onOpen() {
     .addItem('🔒 Applica protezioni fogli', 'menuApplicaProtezioniFogli')
     .addItem('✅ Applica validazioni celle', 'menuApplicaValidazioniCelle')
     .addItem('ℹ️ Info versione', 'menuMostraInfoVersione')
+    .addItem('🔗 Mostra link pagina annullamento (Fase D)', 'menuMostraUrlWebAppAnnullamento')
     .addItem('❓ Guida rapida', 'menuApriGuidaRapida')
     .addToUi();
 
@@ -185,4 +186,31 @@ function menuApriSidebarDettaglio() {
 function menuApriGuidaRapida() {
   var html = HtmlService.createHtmlOutputFromFile('UI/guidaRapida').setWidth(480).setHeight(560);
   SpreadsheetApp.getUi().showModalDialog(html, 'Guida rapida — Iscrizioni CUN Fest');
+}
+
+/**
+ * Menu: mostra l'URL pubblico della Web App di annullamento (diagnostica per l'operatore).
+ * Se la Web App non è ancora stata distribuita, spiega il passaggio manuale da fare una tantum.
+ */
+function menuMostraUrlWebAppAnnullamento() {
+  var ui = SpreadsheetApp.getUi();
+  var url;
+  try {
+    url = ScriptApp.getService().getUrl();
+  } catch (e) {
+    url = null;
+  }
+  if (!url) {
+    ui.alert(
+      'Web App non ancora distribuita',
+      'Le mail di conferma non includono ancora il link di annullamento perché la Web App non è ' +
+      'stata distribuita. Per attivarla (operazione unica): Estensioni → Apps Script → Deploy → ' +
+      'Nuovo deployment → tipo "App web" → accesso "Chiunque". Vedi MANUALE_UTENTE.md per i dettagli.',
+      ui.ButtonSet.OK
+    );
+    return;
+  }
+  ui.alert('URL pagina di annullamento', url +
+    '\n\nQuesto è l\'indirizzo base: alle mail viene aggiunto automaticamente il codice personale di ogni iscritto.',
+    ui.ButtonSet.OK);
 }

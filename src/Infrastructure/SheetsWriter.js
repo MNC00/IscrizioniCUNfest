@@ -29,7 +29,7 @@ function getOCreaFoglioOperativo() {
       COLONNE_ISCRIZIONI.DATA_ARRIVO, COLONNE_ISCRIZIONI.PASTO_ARRIVO,
       COLONNE_ISCRIZIONI.DATA_PARTENZA, COLONNE_ISCRIZIONI.PASTO_PARTENZA,
       COLONNE_ISCRIZIONI.SOLO_PRANZO_CUN, COLONNE_ISCRIZIONI.PARLIAMO_LUNEDI,
-      COLONNE_ISCRIZIONI.PREZZO
+      COLONNE_ISCRIZIONI.PREZZO, COLONNE_ISCRIZIONI.TOKEN_ANNULLAMENTO
     ];
     sheet.appendRow(intestazioni);
     sheet.getRange(1, 1, 1, intestazioni.length).setBackground('#d9ead3').setFontWeight('bold');
@@ -64,7 +64,8 @@ function scriviIscrizioneOperativa(sheetOperativo, indiceIntestazioni, numeroRig
     [COLONNE_ISCRIZIONI.PASTO_PARTENZA, iscrizione.pastoPartenza],
     [COLONNE_ISCRIZIONI.SOLO_PRANZO_CUN, iscrizione.soloPranzoCun ? 'Si' : 'No'],
     [COLONNE_ISCRIZIONI.PARLIAMO_LUNEDI, iscrizione.parliamoLunedi],
-    [COLONNE_ISCRIZIONI.PREZZO, iscrizione.prezzo]
+    [COLONNE_ISCRIZIONI.PREZZO, iscrizione.prezzo],
+    [COLONNE_ISCRIZIONI.TOKEN_ANNULLAMENTO, iscrizione.tokenAnnullamento]
   ];
   // Una sola chiamata setValues per riga (non una per colonna): con centinaia di iscrizioni la
   // differenza è sostanziale, ed è quello che rende accettabile la latenza del trigger di submit.
@@ -98,6 +99,47 @@ function assegnaIdIscrizioneSeMancante(sheetIscrizioni, indiceIntestazioni, nume
   var nuovoId = generaIdIscrizione();
   cella.setValue(nuovoId);
   return nuovoId;
+}
+
+/**
+ * @return {string} un nuovo token di annullamento (Fase D): usa l'UUID completo (non troncato
+ * come ID_ISCRIZIONE) perché questo valore concede a chiunque lo possieda la possibilità di
+ * annullare un'iscrizione senza autenticazione, quindi serve la massima entropia disponibile.
+ */
+function generaTokenAnnullamento() {
+  return Utilities.getUuid();
+}
+
+/**
+ * Garantisce che la riga indicata abbia un TOKEN_ANNULLAMENTO; lo genera e scrive se assente.
+ * Chiamata al momento dell'invio della mail di conferma (non alla semplice importazione),
+ * così il token esiste solo per iscrizioni per cui è già stata inviata almeno una comunicazione.
+ * @param {Sheet} sheetIscrizioni Tab operativo.
+ * @param {Object<string, number>} indiceIntestazioni
+ * @param {number} numeroRiga
+ * @return {string} il token (esistente o appena generato).
+ */
+function assegnaTokenAnnullamentoSeMancante(sheetIscrizioni, indiceIntestazioni, numeroRiga) {
+  var idx = assicuraColonna(sheetIscrizioni, indiceIntestazioni, COLONNE_ISCRIZIONI.TOKEN_ANNULLAMENTO);
+  var cella = sheetIscrizioni.getRange(numeroRiga, idx + 1);
+  var tokenEsistente = cella.getValue();
+  if (tokenEsistente) return tokenEsistente;
+  var nuovoToken = generaTokenAnnullamento();
+  cella.setValue(nuovoToken);
+  return nuovoToken;
+}
+
+/**
+ * Invalida (svuota) il token di annullamento di una riga: usata subito dopo che l'annullamento
+ * è stato eseguito, per rendere il link a uso singolo (un riutilizzo successivo del link non
+ * troverà più corrispondenza in trovaRigaPerTokenAnnullamento).
+ * @param {Sheet} sheetIscrizioni Tab operativo.
+ * @param {Object<string, number>} indiceIntestazioni
+ * @param {number} numeroRiga
+ */
+function invalidaTokenAnnullamento(sheetIscrizioni, indiceIntestazioni, numeroRiga) {
+  var idx = assicuraColonna(sheetIscrizioni, indiceIntestazioni, COLONNE_ISCRIZIONI.TOKEN_ANNULLAMENTO);
+  sheetIscrizioni.getRange(numeroRiga, idx + 1).setValue('');
 }
 
 /**
